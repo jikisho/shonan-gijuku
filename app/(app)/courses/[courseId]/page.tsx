@@ -3,11 +3,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { getCourse } from "@/data/courses";
-import { ArrowLeft, Play, CheckCircle2, Lock } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
+
+const PROGRESS_KEY = "shonan_juku_progress";
 
 const phaseColorMap: Record<string, string> = {
   phase1: "text-blue-400 bg-blue-500/10 border-blue-500/20",
@@ -23,6 +25,11 @@ export default function CoursePage({
   const { courseId } = use(params);
   const course = getCourse(courseId);
   if (!course) notFound();
+
+  const [completed, setCompleted] = useState<string[]>([]);
+  useEffect(() => {
+    try { setCompleted(JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? "[]")); } catch {}
+  }, []);
 
   const phases = Array.from(new Set(course.lessons.map((l) => l.phase)));
 
@@ -101,7 +108,7 @@ export default function CoursePage({
                             {lesson.description}
                           </p>
                         </div>
-                        <CheckCircle2 className="w-4 h-4 text-white/10 shrink-0" />
+                        <CheckCircle2 className={`w-4 h-4 shrink-0 ${completed.includes(lesson.id) ? "text-green-400" : "text-white/10"}`} />
                       </motion.div>
                     </Link>
                   </FadeInList>

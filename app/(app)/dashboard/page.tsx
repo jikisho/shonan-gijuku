@@ -6,6 +6,9 @@ import { courses } from "@/data/courses";
 import { ArrowRight, CheckCircle2, BookOpen, Brain } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
+import { useState, useEffect } from "react";
+
+const PROGRESS_KEY = "shonan_juku_progress";
 
 const phaseColors: Record<string, string> = {
   statement: "from-blue-900/40 to-blue-800/20 border-blue-500/20",
@@ -22,7 +25,16 @@ const accentBg: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const [completed, setCompleted] = useState<string[]>([]);
   const totalLessons = courses.reduce((s, c) => s + c.totalLessons, 0);
+
+  useEffect(() => {
+    try {
+      setCompleted(JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? "[]"));
+    } catch {}
+  }, []);
+
+  const totalCompleted = completed.length;
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
@@ -44,10 +56,9 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <FadeIn delay={0.1} className="grid grid-cols-3 gap-2 md:gap-4 mb-8 md:mb-10">
-
         {[
           { label: "総レッスン数", value: totalLessons, icon: BookOpen, color: "text-blue-400" },
-          { label: "コース数", value: courses.length, icon: CheckCircle2, color: "text-green-400" },
+          { label: "完了済み", value: totalCompleted, icon: CheckCircle2, color: "text-green-400" },
           { label: "自己分析 問数", value: 40, icon: Brain, color: "text-amber-400" },
         ].map((stat) => (
           <div
@@ -73,33 +84,39 @@ export default function DashboardPage() {
       </FadeIn>
 
       <div className="grid md:grid-cols-2 gap-3 md:gap-4 mb-8 md:mb-10">
-        {courses.map((course, i) => (
-          <FadeInList key={course.id} index={i}>
-            <Link href={`/courses/${course.id}`}>
-              <motion.div
-                whileHover={{ y: -2, scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                className={`rounded-2xl border p-6 bg-gradient-to-br ${phaseColors[course.id]} cursor-pointer transition-all`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <span className="text-2xl">{course.icon}</span>
-                    <h3 className="text-base font-bold text-white mt-2">{course.title}</h3>
-                    <p className="text-xs text-white/40 mt-1">{course.totalLessons} レッスン</p>
+        {courses.map((course, i) => {
+          const courseCompleted = course.lessons.filter((l) =>
+            completed.includes(l.id)
+          ).length;
+          const pct = Math.round((courseCompleted / course.totalLessons) * 100);
+          return (
+            <FadeInList key={course.id} index={i}>
+              <Link href={`/courses/${course.id}`}>
+                <motion.div
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className={`rounded-2xl border p-6 bg-gradient-to-br ${phaseColors[course.id]} cursor-pointer transition-all`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <span className="text-2xl">{course.icon}</span>
+                      <h3 className="text-base font-bold text-white mt-2">{course.title}</h3>
+                      <p className="text-xs text-white/40 mt-1">{course.totalLessons} レッスン</p>
+                    </div>
+                    <div className={`w-8 h-8 rounded-lg ${accentBg[course.id]} flex items-center justify-center`}>
+                      <ArrowRight className="w-4 h-4 text-white/60" />
+                    </div>
                   </div>
-                  <div className={`w-8 h-8 rounded-lg ${accentBg[course.id]} flex items-center justify-center`}>
-                    <ArrowRight className="w-4 h-4 text-white/60" />
-                  </div>
-                </div>
-                <p className="text-xs text-white/40 leading-relaxed line-clamp-2 mb-4">
-                  {course.description}
-                </p>
-                <Progress value={0} className="h-1 bg-white/10" />
-                <p className="text-[10px] text-white/20 mt-1">0 / {course.totalLessons} 完了</p>
-              </motion.div>
-            </Link>
-          </FadeInList>
-        ))}
+                  <p className="text-xs text-white/40 leading-relaxed line-clamp-2 mb-4">
+                    {course.description}
+                  </p>
+                  <Progress value={pct} className="h-1 bg-white/10" />
+                  <p className="text-[10px] text-white/20 mt-1">{courseCompleted} / {course.totalLessons} 完了</p>
+                </motion.div>
+              </Link>
+            </FadeInList>
+          );
+        })}
       </div>
 
       {/* Analysis CTA */}

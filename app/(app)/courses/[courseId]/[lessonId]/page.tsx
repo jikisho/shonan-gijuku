@@ -3,7 +3,7 @@
 import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import {
   getCourse,
   getLesson,
@@ -22,6 +22,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/PageMotion";
 
+const PROGRESS_KEY = "shonan_juku_progress";
+
+function getCompleted(): string[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? "[]"); } catch { return []; }
+}
+function setCompleted(ids: string[]) {
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(ids));
+}
+
 export default function LessonPage({
   params,
 }: {
@@ -29,6 +39,20 @@ export default function LessonPage({
 }) {
   const { courseId, lessonId } = use(params);
   const router = useRouter();
+  const [completed, setCompletedState] = useState<string[]>([]);
+
+  useEffect(() => { setCompletedState(getCompleted()); }, []);
+
+  const toggleComplete = () => {
+    const current = getCompleted();
+    const next = current.includes(lessonId)
+      ? current.filter((id) => id !== lessonId)
+      : [...current, lessonId];
+    setCompleted(next);
+    setCompletedState(next);
+  };
+
+  const isDone = completed.includes(lessonId);
   const course = getCourse(courseId);
   if (!course) notFound();
 
@@ -248,10 +272,18 @@ export default function LessonPage({
 
         {/* Mark complete + navigation */}
         <FadeIn delay={0.35} className="flex items-center justify-between pt-6 border-t border-white/5">
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium hover:bg-green-500/15 transition-colors">
-            <CheckCircle2 className="w-4 h-4" />
-            完了にする
-          </button>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={toggleComplete}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              isDone
+                ? "bg-green-500/20 border border-green-500/30 text-green-400"
+                : "bg-white/5 border border-white/10 text-white/50 hover:bg-green-500/10 hover:border-green-500/20 hover:text-green-400"
+            }`}
+          >
+            <CheckCircle2 className={`w-4 h-4 ${isDone ? "text-green-400" : "text-white/30"}`} />
+            {isDone ? "完了済み ✓" : "完了にする"}
+          </motion.button>
 
           <div className="flex gap-3">
             {prevLesson && (
