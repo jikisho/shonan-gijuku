@@ -8,6 +8,10 @@ import { getCourse } from "@/data/courses";
 import { ArrowLeft, Play, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
+import dynamic from "next/dynamic";
+
+const StatementWorksheet = dynamic(() => import("@/components/StatementWorksheet"), { ssr: false });
+const ActivityWorksheet = dynamic(() => import("@/components/ActivityWorksheet"), { ssr: false });
 
 const PROGRESS_KEY = "shonan_juku_progress";
 
@@ -118,6 +122,10 @@ export default function CoursePage({
           );
         })}
       </div>
+
+      {/* Course-specific worksheets */}
+      {courseId === "statement" && <StatementWorksheet />}
+      {courseId === "activity" && <ActivityWorksheet />}
     </div>
   );
 }
