@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { categories } from "@/data/analysis-questions";
-import { Brain, ChevronDown, ChevronUp, Save, CheckCircle2 } from "lucide-react";
+import { Brain, ChevronDown, ChevronUp, Save, CheckCircle2, Share2, Link2 } from "lucide-react";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
 
 const STORAGE_KEY = "shonan_juku_analysis";
@@ -14,14 +14,12 @@ export default function AnalysisPage() {
     cat1: true,
   });
   const [saved, setSaved] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "copied">("idle");
 
-  // Load from localStorage
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      try {
-        setAnswers(JSON.parse(stored));
-      } catch {}
+      try { setAnswers(JSON.parse(stored)); } catch {}
     }
   }, []);
 
@@ -34,6 +32,18 @@ export default function AnalysisPage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleShare = async () => {
+    const encoded = btoa(encodeURIComponent(JSON.stringify(answers)));
+    const url = `${window.location.origin}/analysis/view?d=${encoded}`;
+    if (navigator.share) {
+      await navigator.share({ title: "自己分析シート", url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShareState("copied");
+      setTimeout(() => setShareState("idle"), 2500);
+    }
   };
 
   const toggleCategory = (catId: string) => {
@@ -64,24 +74,44 @@ export default function AnalysisPage() {
               </p>
             </div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleSave}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/20 transition-colors"
-          >
-            {saved ? (
-              <>
-                <CheckCircle2 className="w-4 h-4 text-green-400" />
-                <span className="text-green-400">保存済み</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                保存する
-              </>
-            )}
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleShare}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm font-medium hover:bg-white/10 transition-colors"
+            >
+              {shareState === "copied" ? (
+                <>
+                  <Link2 className="w-4 h-4 text-green-400" />
+                  <span className="text-green-400 hidden sm:inline">コピー済み</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">共有</span>
+                </>
+              )}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSave}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/20 transition-colors"
+            >
+              {saved ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <span className="text-green-400 hidden sm:inline">保存済み</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span className="hidden sm:inline">保存</span>
+                </>
+              )}
+            </motion.button>
+          </div>
         </div>
 
         {/* Progress bar */}
@@ -118,7 +148,6 @@ export default function AnalysisPage() {
 
           return (
             <FadeInList key={category.id} index={ci} className="glass-card rounded-2xl overflow-hidden">
-              {/* Category header */}
               <button
                 onClick={() => toggleCategory(category.id)}
                 className="w-full flex items-center justify-between px-6 py-5 hover:bg-white/3 transition-colors"
@@ -138,9 +167,7 @@ export default function AnalysisPage() {
                   <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-amber-500/60 rounded-full transition-all duration-500"
-                      style={{
-                        width: `${(categoryAnswered / category.questions.length) * 100}%`,
-                      }}
+                      style={{ width: `${(categoryAnswered / category.questions.length) * 100}%` }}
                     />
                   </div>
                   {isOpen ? (
@@ -151,7 +178,6 @@ export default function AnalysisPage() {
                 </div>
               </button>
 
-              {/* Category content */}
               <AnimatePresence>
                 {isOpen && (
                   <motion.div
@@ -166,9 +192,8 @@ export default function AnalysisPage() {
                         {category.description}
                       </p>
                       <div className="space-y-4">
-                        {category.questions.map((question, qi) => (
+                        {category.questions.map((question) => (
                           <div key={question.id} className="rounded-xl border border-white/8 overflow-hidden">
-                            {/* Question header */}
                             <div className="flex items-center gap-3 px-4 py-2.5 bg-white/4 border-b border-white/8">
                               <span className="text-[10px] font-mono font-bold text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded shrink-0">
                                 Q{question.number}
@@ -177,18 +202,14 @@ export default function AnalysisPage() {
                                 {question.text}
                               </p>
                             </div>
-                            {/* Question body — always visible */}
                             <div className="px-4 py-3 border-b border-white/5 bg-white/2">
                               <p className="text-xs text-white/45 leading-relaxed">
                                 {question.placeholder}
                               </p>
                             </div>
-                            {/* Answer */}
                             <textarea
                               value={answers[question.id] ?? ""}
-                              onChange={(e) =>
-                                handleAnswer(question.id, e.target.value)
-                              }
+                              onChange={(e) => handleAnswer(question.id, e.target.value)}
                               placeholder="ここに回答を入力してください..."
                               rows={4}
                               className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none transition-colors leading-relaxed"
@@ -205,22 +226,23 @@ export default function AnalysisPage() {
         })}
       </div>
 
-      {/* Save button at bottom */}
-      <FadeIn delay={0.3} className="mt-8 flex justify-center">
+      {/* Bottom buttons */}
+      <FadeIn delay={0.3} className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+        <button
+          onClick={handleShare}
+          className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-white/5 border border-white/10 text-white/70 font-semibold text-sm hover:bg-white/10 transition-colors"
+        >
+          <Share2 className="w-4 h-4" />
+          回答を共有する
+        </button>
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-shadow"
+          className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-shadow"
         >
           {saved ? (
-            <>
-              <CheckCircle2 className="w-4 h-4" />
-              保存しました
-            </>
+            <><CheckCircle2 className="w-4 h-4" />保存しました</>
           ) : (
-            <>
-              <Save className="w-4 h-4" />
-              回答を保存する
-            </>
+            <><Save className="w-4 h-4" />回答を保存する</>
           )}
         </button>
       </FadeIn>
