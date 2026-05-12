@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ACTIVITY_STORAGE_KEY } from "@/data/worksheets";
-import { Save, CheckCircle2, Share2, Link2, BookOpen, Plus, Star } from "lucide-react";
+import { Save, CheckCircle2, Share2, Link2, BookOpen, Star, Download } from "lucide-react";
 
 interface ActivityRow {
   year: string;
@@ -134,6 +134,14 @@ export default function ActivityWorksheet() {
           </div>
         </div>
         <div className="flex gap-2">
+          <a
+            href="/活動報告書_フォーマット.docx"
+            download="活動報告書_フォーマット.docx"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/50 text-xs hover:bg-white/10 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Word DL</span>
+          </a>
           <button
             onClick={handleShare}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/50 text-xs hover:bg-white/10 transition-colors"
