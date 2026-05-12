@@ -25,14 +25,14 @@ export default function DashboardPage() {
   const totalLessons = courses.reduce((s, c) => s + c.totalLessons, 0);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
       {/* Header */}
-      <FadeIn className="mb-10">
+      <FadeIn className="mb-8 md:mb-10">
         <p className="text-xs tracking-[0.25em] text-amber-400/60 uppercase mb-2">
           SFC AO入試 完全攻略
         </p>
         <h1
-          className="text-3xl font-bold text-white"
+          className="text-2xl md:text-3xl font-bold text-white"
           style={{ fontFamily: "var(--font-serif)" }}
         >
           ダッシュボード
@@ -43,7 +43,7 @@ export default function DashboardPage() {
       </FadeIn>
 
       {/* Stats */}
-      <FadeIn delay={0.1} className="grid grid-cols-3 gap-4 mb-10">
+      <FadeIn delay={0.1} className="grid grid-cols-3 gap-2 md:gap-4 mb-8 md:mb-10">
 
         {[
           { label: "総レッスン数", value: totalLessons, icon: BookOpen, color: "text-blue-400" },
@@ -52,14 +52,14 @@ export default function DashboardPage() {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="glass-card rounded-xl p-5 flex items-center gap-4"
+            className="glass-card rounded-xl p-3 md:p-5 flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-4"
           >
-            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <stat.icon className={`w-4 h-4 md:w-5 md:h-5 ${stat.color}`} />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-              <p className="text-xs text-white/40">{stat.label}</p>
+            <div className="text-center md:text-left">
+              <p className="text-xl md:text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-[10px] md:text-xs text-white/40">{stat.label}</p>
             </div>
           </div>
         ))}
@@ -72,7 +72,7 @@ export default function DashboardPage() {
         </h2>
       </FadeIn>
 
-      <div className="grid md:grid-cols-2 gap-4 mb-10">
+      <div className="grid md:grid-cols-2 gap-3 md:gap-4 mb-8 md:mb-10">
         {courses.map((course, i) => (
           <FadeInList key={course.id} index={i}>
             <Link href={`/courses/${course.id}`}>

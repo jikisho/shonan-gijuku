@@ -130,7 +130,7 @@ export default function LessonPage({
         </div>
       </div>
 
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 md:p-8 max-w-4xl mx-auto">
       <FadeIn>
         {/* description */}
         <div className="mb-6">

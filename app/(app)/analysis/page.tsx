@@ -44,7 +44,7 @@ export default function AnalysisPage() {
   const totalQuestions = categories.reduce((s, c) => s + c.questions.length, 0);
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto">
       {/* Header */}
       <FadeIn className="mb-8">
         <div className="flex items-center justify-between">

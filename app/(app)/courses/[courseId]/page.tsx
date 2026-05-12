@@ -27,7 +27,7 @@ export default function CoursePage({
   const phases = Array.from(new Set(course.lessons.map((l) => l.phase)));
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto">
       {/* Back */}
       <Link
         href="/dashboard"
