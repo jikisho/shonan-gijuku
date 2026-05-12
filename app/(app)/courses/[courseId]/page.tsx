@@ -5,13 +5,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { use, useState, useEffect } from "react";
 import { getCourse } from "@/data/courses";
-import { ArrowLeft, Play, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle2, BookOpen, PenLine, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
-import dynamic from "next/dynamic";
-
-const StatementWorksheet = dynamic(() => import("@/components/StatementWorksheet"), { ssr: false });
-const ActivityWorksheet = dynamic(() => import("@/components/ActivityWorksheet"), { ssr: false });
 
 const PROGRESS_KEY = "shonan_juku_progress";
 
@@ -123,9 +119,30 @@ export default function CoursePage({
         })}
       </div>
 
-      {/* Course-specific worksheets */}
-      {courseId === "statement" && <StatementWorksheet />}
-      {courseId === "activity" && <ActivityWorksheet />}
+      {/* Worksheet link card */}
+      {(courseId === "statement" || courseId === "activity") && (
+        <div className="mt-10 border-t border-white/5 pt-10">
+          <Link href={`/worksheets/${courseId}`}>
+            <motion.div
+              whileHover={{ x: 3 }}
+              className="flex items-center gap-4 p-5 rounded-2xl glass-card hover:border-white/12 transition-all cursor-pointer group"
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${courseId === "activity" ? "bg-green-500/15" : "bg-blue-500/15"}`}>
+                {courseId === "activity"
+                  ? <BookOpen className="w-5 h-5 text-green-400" />
+                  : <PenLine className="w-5 h-5 text-blue-400" />}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white group-hover:text-white/90">フォーマット</p>
+                <p className="text-xs text-white/40 mt-0.5">
+                  {courseId === "activity" ? "活動報告書 Webエントリーページ踏襲版" : "アイデア書き出し — 8段落構成"}
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors shrink-0" />
+            </motion.div>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
