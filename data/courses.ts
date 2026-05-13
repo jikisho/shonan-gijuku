@@ -338,6 +338,7 @@ export const courses: Course[] = [
           { point: "SFCパンフレットやアドミッションポリシーで頻繁に使われる言葉は使わない", explanation: "「問題発見・解決型の環境」「主体的・能動的」「実践知」などの言葉を避け、自分の言葉でSFCと自分の魅力を伝える" },
           { point: "アドミッションポリシー・パンフレット・受験要項・SFCの本を読み込みSFCへの解像度を上げることは非常に重要", explanation: "言葉を借用するためではなく、SFCへの理解を深め自分の言葉で語るための読み込みが必要" },
         ],
+        loomUrl: "https://www.loom.com/share/98bd4af619044a92bddca79f21db9a6b",
         notionUrl: "https://www.notion.so/6e9241b59e6d82d79a50812752e0e82a",
       },
       {
