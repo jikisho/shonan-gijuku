@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
-import { FileText, ChevronRight, ArrowLeft, X, ExternalLink } from "lucide-react";
+import { FileText, ChevronRight, ArrowLeft, X } from "lucide-react";
 
 const CATEGORIES = [
   { id: "statement", label: "志望理由書", emoji: "📝", color: "blue" },
@@ -106,18 +106,9 @@ export default function SamplesPage() {
             <ArrowLeft className="w-4 h-4" />
           </button>
           <p className="text-sm font-medium text-white/80 flex-1 truncate">{selectedFile.name}</p>
-          <a
-            href={selectedFile.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 text-xs hover:bg-white/10 transition-colors"
-          >
-            <ExternalLink className="w-3 h-3" />
-            別タブで開く
-          </a>
         </div>
         <iframe
-          src={selectedFile.url}
+          src={`${selectedFile.url}#toolbar=0&navpanes=0&scrollbar=1`}
           className="flex-1 w-full border-0"
           title={selectedFile.name}
         />
