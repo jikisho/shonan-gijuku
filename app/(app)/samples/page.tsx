@@ -11,6 +11,44 @@ const CATEGORIES = [
   { id: "free-writing", label: "自由記述",     emoji: "✏️", color: "purple" },
 ];
 
+// 丸数字配列（0 は使わない）
+const CIRCLED = ["","①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮"];
+
+// 人物ごとのファイル表示名マッピング（Notion 元ページ名に対応）
+const PERSON_FILE_NAMES: Record<string, Record<string, string>> = {
+  "01_nakamura": {
+    "01_jake":         "Jake（ロボット研究）",
+    "02_chiho-sousei": "地方創生",
+    "03_crowdfunding": "クラファン失敗",
+    "04_shogi":        "将棋",
+    "05_sfc":          "SFCで学びたいこと",
+    "06_eigo-benron":  "英語弁論大会",
+    "07_ojichan":      "対談",
+    "08_tshirt":       "Tシャツ作成",
+  },
+  // 篠部虹人：⑤⑥はGoogleドライブ埋め込みで取得不可だったため番号がズレる
+  "02_shinobe": {
+    "01": "任意提出資料①",
+    "02": "任意提出資料②",
+    "03": "任意提出資料③",
+    "04": "任意提出資料④",
+    "05": "任意提出資料⑦",
+    "06": "任意提出資料⑧",
+    "07": "任意提出資料⑨",
+  },
+  "10_yamashiro": {
+    "01_portfolio": "ポートフォリオ",
+  },
+};
+
+// ファイルサイズ整形
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GiB`;
+}
+
 // Supabase Storage は日本語パスを受け付けないので ASCII → 表示名にマッピング
 const NAME_MAP: Record<string, string> = {
   // 志望理由書
@@ -29,7 +67,7 @@ const NAME_MAP: Record<string, string> = {
   "13_nakao-hitoshi":     "中尾仁",
   "14_yoshimura-takashi": "吉村隆志",
   "15_yamada-shu":        "山田周",
-  // 任意提出資料（人物フォルダ名）
+  // 任意提出資料（人物フォルダ名 — statement と重複しないキーのみ）
   "01_nakamura":    "中村直承",
   "02_shinobe":     "篠部虹人",
   "03_yamada-yuki": "山田雄生",
@@ -40,7 +78,6 @@ const NAME_MAP: Record<string, string> = {
   "11_fujiwara":    "藤原春愛",
   "12_ogawara":     "大河原颯",
   "14_yoshimura":   "吉村隆志",
-  "15_yamada-shu":  "山田周",
 };
 
 // 任意提出資料の人物フォルダ一覧（Supabase のサブフォルダ構造）
@@ -50,25 +87,14 @@ const OPTIONAL_PERSONS = [
   "12_ogawara", "14_yoshimura", "15_yamada-shu",
 ];
 
-// ファイル表示名：連番ファイルを「資料 N」、名前付きは変換
-function fileDisplayName(filename: string): string {
+// ファイル表示名：人物ごとのマッピング → 任意提出資料①② → 素のベース名
+function fileDisplayName(filename: string, person?: string): string {
   const base = filename.replace(/\.[^/.]+$/, "");
-  // 中村直承のサブページ名
-  const namedFiles: Record<string, string> = {
-    "01_jake":         "Jake（ロボット研究）",
-    "02_chiho-sousei": "地方創生",
-    "03_crowdfunding": "クラファン失敗",
-    "04_shogi":        "将棋",
-    "05_sfc":          "SFCで学びたいこと",
-    "06_eigo-benron":  "英語弁論大会",
-    "07_ojichan":      "対談",
-    "08_tshirt":       "Tシャツ作成",
-    "01_portfolio":    "ポートフォリオ",
-  };
-  if (namedFiles[base]) return namedFiles[base];
-  // "01", "02", ... → "資料 1", "資料 2", ...
+  // 人物別マッピング優先
+  if (person && PERSON_FILE_NAMES[person]?.[base]) return PERSON_FILE_NAMES[person][base];
+  // 汎用フォールバック（"01" → "任意提出資料①"）
   const num = parseInt(base, 10);
-  if (!isNaN(num)) return `資料 ${num}`;
+  if (!isNaN(num)) return `任意提出資料${CIRCLED[num] ?? num}`;
   return base;
 }
 
@@ -82,6 +108,7 @@ interface FileItem {
   name: string;
   path: string;
   url: string;
+  size?: number;
 }
 
 export default function SamplesPage() {
@@ -141,9 +168,10 @@ export default function SamplesPage() {
             .from("samples")
             .createSignedUrl(`optional/${person}/${f.name}`, 3600);
           return {
-            name: fileDisplayName(f.name),
+            name: fileDisplayName(f.name, person),
             path: `optional/${person}/${f.name}`,
             url: url?.signedUrl ?? "",
+            size: (f as any).metadata?.size as number | undefined,
           };
         })
     );
@@ -217,9 +245,14 @@ export default function SamplesPage() {
                   <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${colorMap["amber"]}`}>
                     <FileText className="w-4 h-4" />
                   </div>
-                  <p className="text-sm font-medium text-white/80 flex-1 group-hover:text-white transition-colors">
-                    {file.name}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">
+                      {file.name}
+                    </p>
+                    {file.size != null && (
+                      <p className="text-xs text-white/30 mt-0.5">{formatSize(file.size)}</p>
+                    )}
+                  </div>
                   <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors shrink-0" />
                 </button>
               </FadeInList>
