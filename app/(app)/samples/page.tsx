@@ -13,6 +13,7 @@ const CATEGORIES = [
 
 // Supabase Storage doesn't support Japanese in paths, so we map ASCII names → display names
 const NAME_MAP: Record<string, string> = {
+  // 志望理由書 (full name keys)
   "01_nakamura-naotsugi": "中村直承",
   "02_shinobe-nijito":    "篠部虹人",
   "03_yamada-yusei":      "山田雄生",
@@ -28,6 +29,17 @@ const NAME_MAP: Record<string, string> = {
   "13_nakao-hitoshi":     "中尾仁",
   "14_yoshimura-takashi": "吉村隆志",
   "15_yamada-shu":        "山田周",
+  // 任意提出資料 (short name keys)
+  "01_nakamura":    "中村直承",
+  "02_shinobe":     "篠部虹人",
+  "03_yamada-yuki": "山田雄生",
+  "04_kunimoto":    "國本涼太",
+  "05_domon":       "土門達洋",
+  "08_tasaka":      "田坂孝太郎",
+  "10_yamashiro":   "山城力",
+  "11_fujiwara":    "藤原春愛",
+  "12_ogawara":     "大河原颯",
+  "14_yoshimura":   "吉村隆志",
 };
 
 const colorMap: Record<string, string> = {
