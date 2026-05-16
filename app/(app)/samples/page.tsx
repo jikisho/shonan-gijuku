@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
-import { FileText, ChevronRight, ArrowLeft, X } from "lucide-react";
+import { FileText, ChevronRight, ArrowLeft, X, ShieldAlert } from "lucide-react";
 
 const CATEGORIES = [
   { id: "statement", label: "志望理由書", emoji: "📝", color: "blue" },
@@ -184,6 +184,18 @@ export default function SamplesPage() {
           合格者資料
         </h1>
         <p className="text-sm text-white/40">実際の合格者の志望理由書・任意提出資料・自由記述を閲覧できます</p>
+      </FadeIn>
+
+      <FadeIn className="mb-6">
+        <div className="flex gap-3 p-4 rounded-xl border border-red-500/30 bg-red-500/8">
+          <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-red-400">取り扱い厳重注意</p>
+            <p className="text-xs text-white/50 leading-relaxed">
+              本資料は合格者本人の許可のもと、受講生の学習目的に限り共有しています。スクリーンショット・印刷・転載・第三者への共有は固く禁止します。情報漏洩が判明した場合は塾との契約を即時解除し、法的措置を講じる場合があります。
+            </p>
+          </div>
+        </div>
       </FadeIn>
 
       <div className="space-y-3">
