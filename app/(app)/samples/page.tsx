@@ -6,10 +6,28 @@ import { FadeIn, FadeInList } from "@/components/PageMotion";
 import { FileText, ChevronRight, ArrowLeft, X, ExternalLink } from "lucide-react";
 
 const CATEGORIES = [
-  { id: "志望理由書", label: "志望理由書", emoji: "📝", color: "blue" },
-  { id: "任意提出資料", label: "任意提出資料", emoji: "📎", color: "amber" },
-  { id: "自由記述", label: "自由記述", emoji: "✏️", color: "purple" },
+  { id: "statement", label: "志望理由書", emoji: "📝", color: "blue" },
+  { id: "optional", label: "任意提出資料", emoji: "📎", color: "amber" },
+  { id: "free-writing", label: "自由記述", emoji: "✏️", color: "purple" },
 ];
+
+// Supabase Storage doesn't support Japanese in paths, so we map ASCII names → display names
+const NAME_MAP: Record<string, string> = {
+  "01_nakamura-naotsugi": "中村直承",
+  "02_shinobe-nijito":    "篠部虹人",
+  "03_yamada-yusei":      "山田雄生",
+  "04_kunimoto-ryota":    "國本涼太",
+  "05_domon-tatsuhiro":   "土門達洋",
+  "06_takashima-yuta":    "高嶋雄太",
+  "07_takeda-kazuharu":   "竹田一遥",
+  "08_tasaka-kotaro":     "田坂孝太郎",
+  "09_sasada-naohiro":    "笹田尚寛",
+  "10_yamashiro-chikara": "山城力",
+  "11_fujiwara-harua":    "藤原春愛",
+  "12_okawara-so":        "大河原颯",
+  "13_nakao-hitoshi":     "中尾仁",
+  "14_yoshimura-takashi": "吉村隆志",
+};
 
 const colorMap: Record<string, string> = {
   blue:   "bg-blue-500/15 text-blue-400 border-blue-500/20",
@@ -58,8 +76,9 @@ export default function SamplesPage() {
             const { data: urlData } = await supabase.storage
               .from("samples")
               .createSignedUrl(`${cat.id}/${f.name}`, 3600);
+            const baseName = f.name.replace(/\.[^/.]+$/, "");
             return {
-              name: f.name.replace(/\.[^/.]+$/, ""),
+              name: NAME_MAP[baseName] ?? baseName,
               path: `${cat.id}/${f.name}`,
               url: urlData?.signedUrl ?? "",
             };
