@@ -242,6 +242,15 @@ export default function SamplesPage() {
 
   const activeCat = CATEGORIES.find((c) => c.id === selectedCategory);
 
+  // スマホ（768px未満）はPDFを新しいタブで直接開く、PCはアプリ内ビューア
+  const handleFileClick = (file: FileItem) => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      window.open(file.url, "_blank", "noopener,noreferrer");
+    } else {
+      setSelectedFile(file);
+    }
+  };
+
   // ── PDF ビューア ──────────────────────────────────────────────
   if (selectedFile) {
     return (
@@ -318,7 +327,7 @@ export default function SamplesPage() {
             {personFiles.map((file, i) => (
               <FadeInList key={file.path} index={i}>
                 <button
-                  onClick={() => setSelectedFile(file)}
+                  onClick={() => handleFileClick(file)}
                   className="w-full flex items-center gap-4 p-4 rounded-xl glass-card hover:border-white/12 transition-all cursor-pointer group text-left"
                 >
                   <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${colorMap["amber"]}`}>
@@ -428,7 +437,7 @@ export default function SamplesPage() {
             {files.map((file, i) => (
               <FadeInList key={file.path} index={i}>
                 <button
-                  onClick={() => setSelectedFile(file)}
+                  onClick={() => handleFileClick(file)}
                   className="w-full flex items-center gap-4 p-4 rounded-xl glass-card hover:border-white/12 transition-all cursor-pointer group text-left"
                 >
                   <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${colorMap[activeCat.color]}`}>
