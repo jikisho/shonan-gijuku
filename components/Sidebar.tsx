@@ -12,6 +12,7 @@ import {
   FileText,
   PenLine,
   Paperclip,
+  Trophy,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/courses/free-writing", icon: PenLine, label: "自由記述", color: "text-orange-400" },
   { href: "/courses/optional", icon: Paperclip, label: "任意提出資料", color: "text-purple-400" },
   { href: "/analysis", icon: Brain, label: "自己分析シート" },
+  { href: "/samples", icon: Trophy, label: "合格者資料", color: "text-amber-400" },
 ];
 
 interface SidebarProps {
