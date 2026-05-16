@@ -3,17 +3,17 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
-import { FileText, ChevronRight, ArrowLeft, X, ShieldAlert } from "lucide-react";
+import { FileText, ChevronRight, ArrowLeft, ShieldAlert, FolderOpen } from "lucide-react";
 
 const CATEGORIES = [
-  { id: "statement", label: "志望理由書", emoji: "📝", color: "blue" },
-  { id: "optional", label: "任意提出資料", emoji: "📎", color: "amber" },
-  { id: "free-writing", label: "自由記述", emoji: "✏️", color: "purple" },
+  { id: "statement",    label: "志望理由書",   emoji: "📝", color: "blue" },
+  { id: "optional",     label: "任意提出資料", emoji: "📎", color: "amber" },
+  { id: "free-writing", label: "自由記述",     emoji: "✏️", color: "purple" },
 ];
 
-// Supabase Storage doesn't support Japanese in paths, so we map ASCII names → display names
+// Supabase Storage は日本語パスを受け付けないので ASCII → 表示名にマッピング
 const NAME_MAP: Record<string, string> = {
-  // 志望理由書 (full name keys)
+  // 志望理由書
   "01_nakamura-naotsugi": "中村直承",
   "02_shinobe-nijito":    "篠部虹人",
   "03_yamada-yusei":      "山田雄生",
@@ -29,7 +29,7 @@ const NAME_MAP: Record<string, string> = {
   "13_nakao-hitoshi":     "中尾仁",
   "14_yoshimura-takashi": "吉村隆志",
   "15_yamada-shu":        "山田周",
-  // 任意提出資料 (short name keys)
+  // 任意提出資料（人物フォルダ名）
   "01_nakamura":    "中村直承",
   "02_shinobe":     "篠部虹人",
   "03_yamada-yuki": "山田雄生",
@@ -40,7 +40,37 @@ const NAME_MAP: Record<string, string> = {
   "11_fujiwara":    "藤原春愛",
   "12_ogawara":     "大河原颯",
   "14_yoshimura":   "吉村隆志",
+  "15_yamada-shu":  "山田周",
 };
+
+// 任意提出資料の人物フォルダ一覧（Supabase のサブフォルダ構造）
+const OPTIONAL_PERSONS = [
+  "01_nakamura", "02_shinobe", "03_yamada-yuki", "04_kunimoto",
+  "05_domon", "08_tasaka", "10_yamashiro", "11_fujiwara",
+  "12_ogawara", "14_yoshimura", "15_yamada-shu",
+];
+
+// ファイル表示名：連番ファイルを「資料 N」、名前付きは変換
+function fileDisplayName(filename: string): string {
+  const base = filename.replace(/\.[^/.]+$/, "");
+  // 中村直承のサブページ名
+  const namedFiles: Record<string, string> = {
+    "01_jake":         "Jake（ロボット研究）",
+    "02_chiho-sousei": "地方創生",
+    "03_crowdfunding": "クラファン失敗",
+    "04_shogi":        "将棋",
+    "05_sfc":          "SFCで学びたいこと",
+    "06_eigo-benron":  "英語弁論大会",
+    "07_ojichan":      "対談",
+    "08_tshirt":       "Tシャツ作成",
+    "01_portfolio":    "ポートフォリオ",
+  };
+  if (namedFiles[base]) return namedFiles[base];
+  // "01", "02", ... → "資料 1", "資料 2", ...
+  const num = parseInt(base, 10);
+  if (!isNaN(num)) return `資料 ${num}`;
+  return base;
+}
 
 const colorMap: Record<string, string> = {
   blue:   "bg-blue-500/15 text-blue-400 border-blue-500/20",
@@ -54,60 +84,76 @@ interface FileItem {
   url: string;
 }
 
-interface CategoryData {
-  id: string;
-  files: FileItem[];
-  loading: boolean;
-}
-
 export default function SamplesPage() {
-  const [categories, setCategories] = useState<CategoryData[]>(
-    CATEGORIES.map((c) => ({ id: c.id, files: [], loading: true }))
-  );
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const supabase = createClient();
 
-  useEffect(() => {
-    CATEGORIES.forEach(async (cat) => {
-      const { data, error } = await supabase.storage.from("samples").list(cat.id, {
-        limit: 100,
-        sortBy: { column: "name", order: "asc" },
-      });
+  // ナビゲーション状態
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedPerson, setSelectedPerson]     = useState<string | null>(null); // optional のみ
+  const [selectedFile, setSelectedFile]         = useState<FileItem | null>(null);
 
-      if (error || !data) {
-        setCategories((prev) =>
-          prev.map((c) => (c.id === cat.id ? { ...c, loading: false } : c))
-        );
-        return;
-      }
+  // データ
+  const [catFiles, setCatFiles]       = useState<Record<string, FileItem[]>>({});
+  const [catLoading, setCatLoading]   = useState<Record<string, boolean>>({
+    statement: true, optional: false, "free-writing": true,
+  });
+  const [personFiles, setPersonFiles] = useState<FileItem[]>([]);
+  const [personLoading, setPersonLoading] = useState(false);
+
+  // statement / free-writing のファイルを初回ロード
+  useEffect(() => {
+    (["statement", "free-writing"] as const).forEach(async (catId) => {
+      const { data } = await supabase.storage.from("samples").list(catId, {
+        limit: 100, sortBy: { column: "name", order: "asc" },
+      });
+      if (!data) { setCatLoading((p) => ({ ...p, [catId]: false })); return; }
 
       const files: FileItem[] = await Promise.all(
         data
           .filter((f) => f.name !== ".emptyFolderPlaceholder")
           .map(async (f) => {
-            const { data: urlData } = await supabase.storage
+            const { data: url } = await supabase.storage
               .from("samples")
-              .createSignedUrl(`${cat.id}/${f.name}`, 3600);
-            const baseName = f.name.replace(/\.[^/.]+$/, "");
-            return {
-              name: NAME_MAP[baseName] ?? baseName,
-              path: `${cat.id}/${f.name}`,
-              url: urlData?.signedUrl ?? "",
-            };
+              .createSignedUrl(`${catId}/${f.name}`, 3600);
+            const base = f.name.replace(/\.[^/.]+$/, "");
+            return { name: NAME_MAP[base] ?? base, path: `${catId}/${f.name}`, url: url?.signedUrl ?? "" };
           })
       );
-
-      setCategories((prev) =>
-        prev.map((c) => (c.id === cat.id ? { ...c, files, loading: false } : c))
-      );
+      setCatFiles((p) => ({ ...p, [catId]: files }));
+      setCatLoading((p) => ({ ...p, [catId]: false }));
     });
   }, []);
 
-  const activeCat = CATEGORIES.find((c) => c.id === selectedCategory);
-  const activeCatData = categories.find((c) => c.id === selectedCategory);
+  // 人物フォルダのファイルをロード（optional 用）
+  const loadPersonFiles = async (person: string) => {
+    setPersonLoading(true);
+    setPersonFiles([]);
+    const { data } = await supabase.storage.from("samples").list(`optional/${person}`, {
+      limit: 50, sortBy: { column: "name", order: "asc" },
+    });
+    if (!data) { setPersonLoading(false); return; }
 
-  // PDF viewer
+    const files: FileItem[] = await Promise.all(
+      data
+        .filter((f) => f.name !== ".emptyFolderPlaceholder")
+        .map(async (f) => {
+          const { data: url } = await supabase.storage
+            .from("samples")
+            .createSignedUrl(`optional/${person}/${f.name}`, 3600);
+          return {
+            name: fileDisplayName(f.name),
+            path: `optional/${person}/${f.name}`,
+            url: url?.signedUrl ?? "",
+          };
+        })
+    );
+    setPersonFiles(files);
+    setPersonLoading(false);
+  };
+
+  const activeCat = CATEGORIES.find((c) => c.id === selectedCategory);
+
+  // ── PDF ビューア ──────────────────────────────────────────────
   if (selectedFile) {
     return (
       <div className="flex flex-col h-screen bg-[oklch(0.08_0.012_265)]">
@@ -129,9 +175,114 @@ export default function SamplesPage() {
     );
   }
 
-  // ファイル一覧
+  // ── 任意提出資料：ファイル一覧（人物内）──────────────────────
+  if (selectedCategory === "optional" && selectedPerson) {
+    const personName = NAME_MAP[selectedPerson] ?? selectedPerson;
+    return (
+      <div className="p-4 md:p-8 max-w-3xl mx-auto">
+        <button
+          onClick={() => { setSelectedPerson(null); setPersonFiles([]); }}
+          className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-8"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          任意提出資料に戻る
+        </button>
+
+        <FadeIn className="mb-8">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">📎</span>
+            <div>
+              <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-serif)" }}>
+                {personName}
+              </h1>
+              <p className="text-sm text-white/40">任意提出資料</p>
+            </div>
+          </div>
+        </FadeIn>
+
+        {personLoading ? (
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-14 rounded-xl bg-white/3 animate-pulse" />)}
+          </div>
+        ) : personFiles.length === 0 ? (
+          <div className="text-center py-20 text-white/30 text-sm">ファイルがありません</div>
+        ) : (
+          <div className="space-y-2">
+            {personFiles.map((file, i) => (
+              <FadeInList key={file.path} index={i}>
+                <button
+                  onClick={() => setSelectedFile(file)}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl glass-card hover:border-white/12 transition-all cursor-pointer group text-left"
+                >
+                  <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${colorMap["amber"]}`}>
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-medium text-white/80 flex-1 group-hover:text-white transition-colors">
+                    {file.name}
+                  </p>
+                  <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors shrink-0" />
+                </button>
+              </FadeInList>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── 任意提出資料：人物一覧 ────────────────────────────────────
+  if (selectedCategory === "optional") {
+    return (
+      <div className="p-4 md:p-8 max-w-3xl mx-auto">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-8"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          合格者資料に戻る
+        </button>
+
+        <FadeIn className="mb-8">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">📎</span>
+            <div>
+              <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-serif)" }}>
+                任意提出資料
+              </h1>
+              <p className="text-sm text-white/40">合格者資料 · {OPTIONAL_PERSONS.length} 名</p>
+            </div>
+          </div>
+        </FadeIn>
+
+        <div className="space-y-2">
+          {OPTIONAL_PERSONS.map((person, i) => (
+            <FadeInList key={person} index={i}>
+              <button
+                onClick={() => {
+                  setSelectedPerson(person);
+                  loadPersonFiles(person);
+                }}
+                className="w-full flex items-center gap-4 p-4 rounded-xl glass-card hover:border-white/12 transition-all cursor-pointer group text-left"
+              >
+                <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${colorMap["amber"]}`}>
+                  <FolderOpen className="w-4 h-4" />
+                </div>
+                <p className="text-sm font-medium text-white/80 flex-1 group-hover:text-white transition-colors">
+                  {NAME_MAP[person] ?? person}
+                </p>
+                <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors shrink-0" />
+              </button>
+            </FadeInList>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── statement / free-writing：ファイル一覧 ────────────────────
   if (selectedCategory && activeCat) {
-    const catData = activeCatData;
+    const files  = catFiles[selectedCategory] ?? [];
+    const loading = catLoading[selectedCategory] ?? false;
     return (
       <div className="p-4 md:p-8 max-w-3xl mx-auto">
         <button
@@ -154,19 +305,15 @@ export default function SamplesPage() {
           </div>
         </FadeIn>
 
-        {catData?.loading ? (
+        {loading ? (
           <div className="space-y-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-14 rounded-xl bg-white/3 animate-pulse" />
-            ))}
+            {[...Array(5)].map((_, i) => <div key={i} className="h-14 rounded-xl bg-white/3 animate-pulse" />)}
           </div>
-        ) : catData?.files.length === 0 ? (
-          <div className="text-center py-20 text-white/30 text-sm">
-            まだファイルがアップロードされていません
-          </div>
+        ) : files.length === 0 ? (
+          <div className="text-center py-20 text-white/30 text-sm">まだファイルがアップロードされていません</div>
         ) : (
           <div className="space-y-2">
-            {catData?.files.map((file, i) => (
+            {files.map((file, i) => (
               <FadeInList key={file.path} index={i}>
                 <button
                   onClick={() => setSelectedFile(file)}
@@ -188,7 +335,7 @@ export default function SamplesPage() {
     );
   }
 
-  // カテゴリ一覧
+  // ── カテゴリ一覧（トップ）──────────────────────────────────────
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
       <FadeIn className="mb-8">
@@ -212,7 +359,17 @@ export default function SamplesPage() {
 
       <div className="space-y-3">
         {CATEGORIES.map((cat, i) => {
-          const catData = categories.find((c) => c.id === cat.id);
+          let countLabel = "読み込み中...";
+          if (cat.id === "optional") {
+            countLabel = `${OPTIONAL_PERSONS.length} 名`;
+          } else if (cat.id === "free-writing") {
+            countLabel = catLoading[cat.id] ? "読み込み中..." : "14名 28資料";
+          } else {
+            countLabel = catLoading[cat.id]
+              ? "読み込み中..."
+              : `${catFiles[cat.id]?.length ?? 0} 件`;
+          }
+
           return (
             <FadeInList key={cat.id} index={i}>
               <button
@@ -224,9 +381,7 @@ export default function SamplesPage() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-white group-hover:text-white/90">{cat.label}</p>
-                  <p className="text-xs text-white/40 mt-0.5">
-                    {catData?.loading ? "読み込み中..." : cat.id === "free-writing" ? "14名 28資料" : `${catData?.files.length ?? 0} 件`}
-                  </p>
+                  <p className="text-xs text-white/40 mt-0.5">{countLabel}</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors shrink-0" />
               </button>
