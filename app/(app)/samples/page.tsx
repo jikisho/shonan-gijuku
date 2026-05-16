@@ -213,7 +213,7 @@ export default function SamplesPage() {
                 <div className="flex-1">
                   <p className="text-sm font-bold text-white group-hover:text-white/90">{cat.label}</p>
                   <p className="text-xs text-white/40 mt-0.5">
-                    {catData?.loading ? "読み込み中..." : `${catData?.files.length ?? 0} 件`}
+                    {catData?.loading ? "読み込み中..." : cat.id === "free-writing" ? "14名 28資料" : `${catData?.files.length ?? 0} 件`}
                   </p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors shrink-0" />
