@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { courses } from "@/data/courses";
-import { ArrowRight, CheckCircle2, BookOpen, Brain } from "lucide-react";
+import { ArrowRight, CheckCircle2, BookOpen, Brain, Trophy } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
 import { useState, useEffect } from "react";
@@ -120,7 +120,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Analysis CTA */}
-      <FadeIn delay={0.25}>
+      <FadeIn delay={0.25} className="mb-3">
         <Link href="/analysis">
           <motion.div
             whileHover={{ y: -2, scale: 1.005 }}
@@ -139,6 +139,31 @@ export default function DashboardPage() {
                 </div>
               </div>
               <ArrowRight className="w-5 h-5 text-amber-400/60" />
+            </div>
+          </motion.div>
+        </Link>
+      </FadeIn>
+
+      {/* Samples CTA */}
+      <FadeIn delay={0.3}>
+        <Link href="/samples">
+          <motion.div
+            whileHover={{ y: -2, scale: 1.005 }}
+            className="rounded-2xl border border-yellow-500/20 bg-gradient-to-br from-yellow-900/30 to-yellow-800/10 p-6 cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-yellow-500/15 flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-yellow-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">合格者資料</h3>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    志望理由書・任意提出資料・自由記述｜合格者の実例を閲覧
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-yellow-400/60" />
             </div>
           </motion.div>
         </Link>
