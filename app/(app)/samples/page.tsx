@@ -55,7 +55,7 @@ const PERSON_FILE_NAMES: Record<string, Record<string, string>> = {
     "01": "任意提出１",
     "02": "任意提出書類２",
   },
-  // 田坂孝太郎
+  // 田坂絋太郎
   "08_tasaka": {
     "01": "研究活動",
     "02": "外部活動",
@@ -120,7 +120,7 @@ const NAME_MAP: Record<string, string> = {
   "05_domon-tatsuhiro":   "土門達洋",
   "06_takashima-yuta":    "高嶋雄太",
   "07_takeda-kazuharu":   "竹田一遥",
-  "08_tasaka-kotaro":     "田坂孝太郎",
+  "08_tasaka-kotaro":     "田坂絋太郎",
   "09_sasada-naohiro":    "笹田尚寛",
   "10_yamashiro-chikara": "山城力",
   "11_fujiwara-harua":    "藤原春愛",
@@ -134,7 +134,7 @@ const NAME_MAP: Record<string, string> = {
   "03_yamada-yuki": "山田雄生",
   "04_kunimoto":    "國本涼太",
   "05_domon":       "土門達洋",
-  "08_tasaka":      "田坂孝太郎",
+  "08_tasaka":      "田坂絋太郎",
   "10_yamashiro":   "山城力",
   "11_fujiwara":    "藤原春愛",
   "12_ogawara":     "大河原颯",
