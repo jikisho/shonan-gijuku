@@ -343,7 +343,7 @@ export default function SamplesPage() {
               <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-serif)" }}>
                 任意提出資料
               </h1>
-              <p className="text-sm text-white/40">合格者資料 · {OPTIONAL_PERSONS.length} 名</p>
+              <p className="text-sm text-white/40">合格者資料 · {OPTIONAL_PERSONS.length}名 51資料</p>
             </div>
           </div>
         </FadeIn>
@@ -455,7 +455,7 @@ export default function SamplesPage() {
         {CATEGORIES.map((cat, i) => {
           let countLabel = "読み込み中...";
           if (cat.id === "optional") {
-            countLabel = `${OPTIONAL_PERSONS.length} 名`;
+            countLabel = `${OPTIONAL_PERSONS.length}名 51資料`;
           } else if (cat.id === "free-writing") {
             countLabel = catLoading[cat.id] ? "読み込み中..." : "14名 28資料";
           } else {
