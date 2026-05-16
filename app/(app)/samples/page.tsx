@@ -27,6 +27,7 @@ const NAME_MAP: Record<string, string> = {
   "12_okawara-so":        "大河原颯",
   "13_nakao-hitoshi":     "中尾仁",
   "14_yoshimura-takashi": "吉村隆志",
+  "15_yamada-shu":        "山田周",
 };
 
 const colorMap: Record<string, string> = {
