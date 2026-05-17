@@ -39,12 +39,22 @@ export default function PdfViewer({ url }: PdfViewerProps) {
         </div>
       )}
 
-      {/* iframe */}
+      {/* iframe：iOS Safari でスクロール可能にするため overflow:auto + WebkitOverflowScrolling */}
       {blobUrl && (
         <iframe
           src={`${blobUrl}#toolbar=0&navpanes=0`}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            border: "none",
+            overflow: "auto",
+            // @ts-ignore
+            WebkitOverflowScrolling: "touch",
+          }}
           title="PDF"
+          scrolling="yes"
         />
       )}
 

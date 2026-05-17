@@ -254,9 +254,10 @@ export default function SamplesPage() {
   };
 
   // ── PDF ビューア（志望理由書）──────────────────────────────────
+  // position:fixed でレイアウトの制約を完全に無視し、画面全体を覆う
   if (selectedFile) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#0d1117" }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", flexDirection: "column", background: "#0d1117" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
           <button
             onClick={() => setSelectedFile(null)}
