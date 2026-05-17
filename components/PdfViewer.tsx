@@ -23,43 +23,49 @@ export default function PdfViewer({ url }: PdfViewerProps) {
     return () => { if (objUrl) URL.revokeObjectURL(objUrl); };
   }, [url]);
 
+  if (error) {
+    return (
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#f87171", fontSize: 14 }}>
+        PDF の読み込みに失敗しました
+      </div>
+    );
+  }
+
+  if (!blobUrl) {
+    return (
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280", fontSize: 14 }}>
+        読み込み中...
+      </div>
+    );
+  }
+
   return (
-    <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden", background: "#111" }}>
-      {/* ローディング */}
-      {!blobUrl && !error && (
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#555", fontSize: 14 }}>
-          読み込み中...
-        </div>
-      )}
+    // position:relative で watermark の基準にする
+    // overflow は指定しない（iOS の scroll を妨げないため）
+    <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex" }}>
 
-      {/* エラー */}
-      {error && (
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#f88", fontSize: 14 }}>
-          PDF の読み込みに失敗しました
-        </div>
-      )}
+      {/* iframe：flex:1 で親を埋める。position:absolute は使わない */}
+      <iframe
+        src={`${blobUrl}#toolbar=0&navpanes=0`}
+        style={{
+          flex: 1,
+          width: "100%",
+          border: "none",
+          display: "block",
+          minHeight: 0,
+        }}
+        title="PDF"
+        allow="fullscreen"
+      />
 
-      {/* iframe：iOS Safari でスクロール可能にするため overflow:auto + WebkitOverflowScrolling */}
-      {blobUrl && (
-        <iframe
-          src={`${blobUrl}#toolbar=0&navpanes=0`}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            border: "none",
-            overflow: "auto",
-            // @ts-ignore
-            WebkitOverflowScrolling: "touch",
-          }}
-          title="PDF"
-          scrolling="yes"
-        />
-      )}
-
-      {/* ウォーターマーク（pointer-events:none でスクロール・操作は通過） */}
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, overflow: "hidden" }}>
+      {/* ウォーターマーク：pointer-events:none で操作・スクロールを通過 */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 10,
+        overflow: "hidden",
+      }}>
         <div style={{
           position: "absolute",
           inset: -200,
