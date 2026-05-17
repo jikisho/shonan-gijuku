@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
 import { FileText, ChevronRight, ArrowLeft, ShieldAlert, FolderOpen } from "lucide-react";
 
-// react-pdf はブラウザ専用 API を使うため SSR 無効で動的インポート
+// 志望理由書のみ Canvas 描画（テキスト選択不可）
 const PdfViewer = dynamic(() => import("@/components/PdfViewer"), { ssr: false });
 
 const CATEGORIES = [
@@ -247,10 +247,16 @@ export default function SamplesPage() {
 
   const activeCat = CATEGORIES.find((c) => c.id === selectedCategory);
 
-  // ファイルをクリック → react-pdf ビューアで表示（PC・スマホ共通）
-  const handleFileClick = (file: FileItem) => setSelectedFile(file);
+  // 志望理由書のみ Canvas ビューア、それ以外は新しいタブで PDF を開く
+  const handleFileClick = (file: FileItem) => {
+    if (selectedCategory === "statement") {
+      setSelectedFile(file);
+    } else {
+      window.open(file.url, "_blank");
+    }
+  };
 
-  // ── PDF ビューア（react-pdf Canvas 描画：テキスト選択・コピー不可）──
+  // ── PDF ビューア（志望理由書のみ）──────────────────────────────
   if (selectedFile) {
     return (
       <div className="flex flex-col bg-[oklch(0.08_0.012_265)]" style={{ height: "100dvh" }}>
