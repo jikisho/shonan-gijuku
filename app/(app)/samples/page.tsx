@@ -256,15 +256,10 @@ export default function SamplesPage() {
   // ── PDF ビューア（志望理由書のみ）──────────────────────────────
   if (selectedFile) {
     return (
-      <div className="flex flex-col bg-[oklch(0.08_0.012_265)]" style={{ height: "100dvh" }}>
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 bg-[oklch(0.09_0.012_265)] shrink-0">
-          <button
-            onClick={() => setSelectedFile(null)}
-            className="p-1.5 text-white/40 hover:text-white/70 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <p className="text-sm font-medium text-white/80 flex-1 truncate">{selectedFile.name}</p>
+      <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#cc0000", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: 16, color: "white", fontSize: 14, borderBottom: "1px solid rgba(255,255,255,0.3)" }}>
+          <button onClick={() => setSelectedFile(null)} style={{ color: "white", marginRight: 12 }}>← 戻る</button>
+          {selectedFile.name}
         </div>
         <PdfViewer url={selectedFile.url} />
       </div>
