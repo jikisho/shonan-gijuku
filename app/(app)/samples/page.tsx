@@ -253,13 +253,20 @@ export default function SamplesPage() {
     }
   };
 
-  // ── PDF ビューア（志望理由書のみ）──────────────────────────────
+  // ── PDF ビューア（志望理由書）──────────────────────────────────
   if (selectedFile) {
     return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#cc0000", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: 16, color: "white", fontSize: 14, borderBottom: "1px solid rgba(255,255,255,0.3)" }}>
-          <button onClick={() => setSelectedFile(null)} style={{ color: "white", marginRight: 12 }}>← 戻る</button>
-          {selectedFile.name}
+      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#0d1117" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
+          <button
+            onClick={() => setSelectedFile(null)}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 6, color: "rgba(255,255,255,0.4)" }}
+          >
+            <ArrowLeft style={{ width: 16, height: 16 }} />
+          </button>
+          <p style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.8)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
+            {selectedFile.name}
+          </p>
         </div>
         <PdfViewer url={selectedFile.url} />
       </div>
