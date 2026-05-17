@@ -24,16 +24,15 @@ export default function PdfViewer({ url }: PdfViewerProps) {
         const worker = new Worker("/pdf.worker.min.mjs", { type: "module" });
         pdfjs.GlobalWorkerOptions.workerPort = worker;
 
-        setPhase("fetching-pdf");
+        setPhase("fetching");
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`fetch: HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`fetch HTTP ${res.status}`);
         const buf = await res.arrayBuffer();
 
-        setPhase("loading-pdf");
+        setPhase("loading-doc");
         const pdf = await pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
 
-        setPhase(`rendering-${pdf.numPages}pages`);
-
+        setPhase(`rendering-${pdf.numPages}p`);
         const container = canvasRef.current!;
         container.innerHTML = "";
         const w = outerRef.current?.clientWidth || window.innerWidth;
@@ -63,13 +62,25 @@ export default function PdfViewer({ url }: PdfViewerProps) {
   return (
     <div
       ref={outerRef}
-      className="flex-1 overflow-y-auto"
-      style={{ background: "#111", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      style={{
+        flex: 1,
+        overflowY: "auto",
+        background: "#111827",
+        WebkitOverflowScrolling: "touch",
+        minHeight: 0,
+      }}
     >
-      {/* デバッグ：phase が常に見えるように */}
       {phase !== "done" && (
-        <div style={{ padding: 16, color: phase === "error" ? "#f88" : "#aaa", fontSize: 13 }}>
-          {phase === "error" ? `エラー: ${errMsg}` : `読み込み中… (${phase})`}
+        <div style={{
+          padding: 24,
+          color: phase === "error" ? "#fca5a5" : "#9ca3af",
+          fontSize: 14,
+          lineHeight: 1.6,
+        }}>
+          {phase === "error"
+            ? <>❌ エラー<br />{errMsg}</>
+            : <>⏳ {phase}</>
+          }
         </div>
       )}
       <div ref={canvasRef} />
