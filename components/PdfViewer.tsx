@@ -1,98 +1,112 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/Page/AnnotationLayer.css";
+import * as pdfjsLib from "pdfjs-dist";
 
-// ワーカー：public/ から配信
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+// webpack5: new URL(specifier, import.meta.url) を使うとワーカーを
+// 適切なチャンクとしてバンドルし、モジュール対応で起動してくれる
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 interface PdfViewerProps {
   url: string;
 }
 
 export default function PdfViewer({ url }: PdfViewerProps) {
-  const [blobUrl, setBlobUrl]     = useState<string | null>(null);
-  const [fetchErr, setFetchErr]   = useState<string | null>(null);
-  const [numPages, setNumPages]   = useState<number>(0);
-  const [pageWidth, setPageWidth] = useState<number>(0);
-  const containerRef              = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus]   = useState<"loading" | "error" | "done">("loading");
+  const [errMsg, setErrMsg]   = useState("");
 
-  // ── PDF を fetch → blob URL に変換（CORS / worker 問題を回避）──
   useEffect(() => {
-    let objUrl: string | null = null;
-    setBlobUrl(null);
-    setFetchErr(null);
-    setNumPages(0);
+    let cancelled = false;
+    setStatus("loading");
+    setErrMsg("");
+    if (containerRef.current) containerRef.current.innerHTML = "";
 
-    fetch(url)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.blob();
-      })
-      .then((blob) => {
-        objUrl = URL.createObjectURL(blob);
-        setBlobUrl(objUrl);
-      })
-      .catch((e) => setFetchErr(String(e)));
+    (async () => {
+      try {
+        // PDF を fetch → ArrayBuffer（ワーカーが直接 URL にアクセスしない）
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const buf = await res.arrayBuffer();
+        if (cancelled) return;
+
+        // PDF ドキュメントを読み込む
+        const pdf = await pdfjsLib
+          .getDocument({ data: new Uint8Array(buf) })
+          .promise;
+        if (cancelled || !containerRef.current) return;
+
+        setStatus("done");
+        containerRef.current.innerHTML = "";
+
+        const w =
+          containerRef.current.clientWidth ||
+          containerRef.current.parentElement?.clientWidth ||
+          window.innerWidth;
+
+        // 各ページを canvas に描画
+        for (let i = 1; i <= pdf.numPages; i++) {
+          if (cancelled) break;
+
+          const page = await pdf.getPage(i);
+          const vp0  = page.getViewport({ scale: 1 });
+          const vp   = page.getViewport({ scale: w / vp0.width });
+
+          const canvas       = document.createElement("canvas");
+          canvas.width       = Math.floor(vp.width);
+          canvas.height      = Math.floor(vp.height);
+          canvas.style.cssText =
+            "display:block;width:100%;margin-bottom:4px;";
+
+          // コピー保護：右クリックメニューを無効化
+          canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+          containerRef.current!.appendChild(canvas);
+
+          await page.render({
+            canvasContext: canvas.getContext("2d")!,
+            viewport: vp,
+            canvas,
+          }).promise;
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setErrMsg(String(e));
+          setStatus("error");
+        }
+      }
+    })();
 
     return () => {
-      if (objUrl) URL.revokeObjectURL(objUrl);
+      cancelled = true;
     };
   }, [url]);
 
-  // ── コンテナ幅を監視 ──────────────────────────────────────────
-  useEffect(() => {
-    const update = () => {
-      if (containerRef.current) setPageWidth(containerRef.current.clientWidth);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    if (containerRef.current) ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
   return (
     <div
-      ref={containerRef}
       className="flex-1 overflow-y-auto bg-[oklch(0.08_0.012_265)]"
       style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
     >
-      {/* エラー */}
-      {fetchErr && (
-        <div className="flex items-center justify-center py-20 text-red-400/70 text-sm px-4 text-center">
-          PDF の読み込みに失敗しました
-        </div>
-      )}
-
-      {/* ローディング */}
-      {!blobUrl && !fetchErr && (
+      {status === "loading" && (
         <div className="flex items-center justify-center py-20 text-white/30 text-sm">
           読み込み中...
         </div>
       )}
 
-      {/* PDF 描画 */}
-      {blobUrl && (
-        <Document
-          file={blobUrl}
-          onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-          onLoadError={(e) => setFetchErr(String(e))}
-          loading={null}
-          error={null}
-        >
-          {Array.from({ length: numPages }, (_, i) => (
-            <Page
-              key={i + 1}
-              pageNumber={i + 1}
-              width={pageWidth > 0 ? pageWidth : undefined}
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-              className="mb-1"
-            />
-          ))}
-        </Document>
+      {status === "error" && (
+        <div className="p-6 text-center">
+          <p className="text-red-400/70 text-sm">
+            PDF の読み込みに失敗しました
+          </p>
+          <p className="text-xs mt-2 text-white/20 break-all">{errMsg}</p>
+        </div>
       )}
+
+      {/* canvas がここに追加される */}
+      <div ref={containerRef} />
     </div>
   );
 }
