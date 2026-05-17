@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 
-// PDF.js ワーカー（CDN）
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// PDF.js ワーカー（ローカル public/ から配信）
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 interface PdfViewerProps {
   url: string;
@@ -46,17 +46,16 @@ export default function PdfViewer({ url }: PdfViewerProps) {
           </div>
         }
       >
-        {pageWidth > 0 &&
-          Array.from({ length: numPages }, (_, i) => (
-            <Page
-              key={i + 1}
-              pageNumber={i + 1}
-              width={pageWidth}
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-              className="mb-1"
-            />
-          ))}
+        {Array.from({ length: numPages }, (_, i) => (
+          <Page
+            key={i + 1}
+            pageNumber={i + 1}
+            width={pageWidth > 0 ? pageWidth : undefined}
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+            className="mb-1"
+          />
+        ))}
       </Document>
     </div>
   );
