@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
-import { FileText, ChevronRight, ArrowLeft, ShieldAlert, FolderOpen, ExternalLink } from "lucide-react";
+import { FileText, ChevronRight, ArrowLeft, ShieldAlert, FolderOpen } from "lucide-react";
+
+// react-pdf はブラウザ専用 API を使うため SSR 無効で動的インポート
+const PdfViewer = dynamic(() => import("@/components/PdfViewer"), { ssr: false });
 
 const CATEGORIES = [
   { id: "statement",    label: "志望理由書",   emoji: "📝", color: "blue" },
@@ -177,8 +181,9 @@ export default function SamplesPage() {
 
   // ナビゲーション状態
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedPerson, setSelectedPerson]     = useState<string | null>(null); // optional のみ
+  const [selectedPerson, setSelectedPerson]     = useState<string | null>(null);
   const [selectedFile, setSelectedFile]         = useState<FileItem | null>(null);
+
 
   // データ
   const [catFiles, setCatFiles]       = useState<Record<string, FileItem[]>>({});
@@ -242,20 +247,13 @@ export default function SamplesPage() {
 
   const activeCat = CATEGORIES.find((c) => c.id === selectedCategory);
 
-  // スマホ（768px未満）はPDFを新しいタブで直接開く、PCはアプリ内ビューア
-  const handleFileClick = (file: FileItem) => {
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      window.open(file.url, "_blank", "noopener,noreferrer");
-    } else {
-      setSelectedFile(file);
-    }
-  };
+  // ファイルをクリック → react-pdf ビューアで表示（PC・スマホ共通）
+  const handleFileClick = (file: FileItem) => setSelectedFile(file);
 
-  // ── PDF ビューア ──────────────────────────────────────────────
+  // ── PDF ビューア（react-pdf Canvas 描画：テキスト選択・コピー不可）──
   if (selectedFile) {
     return (
       <div className="flex flex-col bg-[oklch(0.08_0.012_265)]" style={{ height: "100dvh" }}>
-        {/* ヘッダー */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 bg-[oklch(0.09_0.012_265)] shrink-0">
           <button
             onClick={() => setSelectedFile(null)}
@@ -264,29 +262,8 @@ export default function SamplesPage() {
             <ArrowLeft className="w-4 h-4" />
           </button>
           <p className="text-sm font-medium text-white/80 flex-1 truncate">{selectedFile.name}</p>
-          {/* スマホでスクロールできない場合の外部リンクフォールバック */}
-          <a
-            href={selectedFile.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 text-white/40 hover:text-white/70 transition-colors shrink-0"
-            title="新しいタブで開く"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </a>
         </div>
-        {/* PDF コンテナ：overflow-auto でスマホスクロール対応 */}
-        <div
-          className="flex-1 overflow-auto"
-          style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
-        >
-          <iframe
-            src={`${selectedFile.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-            className="w-full border-0"
-            style={{ height: "100%", minHeight: "100dvh" }}
-            title={selectedFile.name}
-          />
-        </div>
+        <PdfViewer url={selectedFile.url} />
       </div>
     );
   }
