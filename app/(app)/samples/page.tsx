@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
 import { FileText, ChevronRight, ArrowLeft, ShieldAlert, FolderOpen } from "lucide-react";
-
-// 志望理由書のみ Canvas 描画（テキスト選択不可）
-const PdfViewer = dynamic(() => import("@/components/PdfViewer"), { ssr: false });
+import PdfViewer from "@/components/PdfViewer";
 
 const CATEGORIES = [
   { id: "statement",    label: "志望理由書",   emoji: "📝", color: "blue" },
