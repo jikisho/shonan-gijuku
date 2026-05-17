@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
 import { FileText, ChevronRight, ArrowLeft, ShieldAlert, FolderOpen } from "lucide-react";
-import PdfViewer from "@/components/PdfViewer";
 
 const CATEGORIES = [
   { id: "statement",    label: "志望理由書",   emoji: "📝", color: "blue" },
@@ -179,7 +178,6 @@ export default function SamplesPage() {
   // ナビゲーション状態
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson]     = useState<string | null>(null);
-  const [selectedFile, setSelectedFile]         = useState<FileItem | null>(null);
 
 
   // データ
@@ -244,35 +242,8 @@ export default function SamplesPage() {
 
   const activeCat = CATEGORIES.find((c) => c.id === selectedCategory);
 
-  // 志望理由書のみ Canvas ビューア、それ以外は新しいタブで PDF を開く
-  const handleFileClick = (file: FileItem) => {
-    if (selectedCategory === "statement") {
-      setSelectedFile(file);
-    } else {
-      window.open(file.url, "_blank");
-    }
-  };
-
-  // ── PDF ビューア（志望理由書）──────────────────────────────────
-  // position:fixed でレイアウトの制約を完全に無視し、画面全体を覆う
-  if (selectedFile) {
-    return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", flexDirection: "column", background: "#0d1117" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
-          <button
-            onClick={() => setSelectedFile(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 6, color: "rgba(255,255,255,0.4)" }}
-          >
-            <ArrowLeft style={{ width: 16, height: 16 }} />
-          </button>
-          <p style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.8)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
-            {selectedFile.name}
-          </p>
-        </div>
-        <PdfViewer url={selectedFile.url} />
-      </div>
-    );
-  }
+  // 全カテゴリ共通：新しいタブで PDF を開く
+  const handleFileClick = (file: FileItem) => window.open(file.url, "_blank");
 
   // ── 任意提出資料：ファイル一覧（人物内）──────────────────────
   if (selectedCategory === "optional" && selectedPerson) {
