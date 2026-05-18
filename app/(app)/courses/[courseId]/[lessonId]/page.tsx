@@ -1,12 +1,11 @@
 "use client";
 
-import { notFound, useRouter } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useTransition } from "react";
 import {
   getCourse,
-  getLesson,
   getLoomEmbedUrl,
   getSlidesEmbedUrl,
 } from "@/data/courses";
@@ -21,16 +20,10 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/PageMotion";
+import { toggleLessonProgress, getCompletedLessons, migrateLocalStorageProgress } from "@/app/actions/progress";
 
 const PROGRESS_KEY = "shonan_juku_progress";
-
-function getCompleted(): string[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? "[]"); } catch { return []; }
-}
-function setCompleted(ids: string[]) {
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(ids));
-}
+const MIGRATED_KEY = "shonan_juku_migrated";
 
 export default function LessonPage({
   params,
@@ -38,21 +31,42 @@ export default function LessonPage({
   params: Promise<{ courseId: string; lessonId: string }>;
 }) {
   const { courseId, lessonId } = use(params);
-  const router = useRouter();
-  const [completed, setCompletedState] = useState<string[]>([]);
+  const [isDone, setIsDone] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  useEffect(() => { setCompletedState(getCompleted()); }, []);
+  // 初回マウント時: localStorageマイグレーション → DB取得
+  useEffect(() => {
+    const migrate = async () => {
+      const migrated = localStorage.getItem(MIGRATED_KEY);
+      if (!migrated) {
+        try {
+          const local: string[] = JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? "[]");
+          if (local.length > 0) {
+            await migrateLocalStorageProgress(local);
+          }
+          localStorage.setItem(MIGRATED_KEY, "1");
+        } catch {}
+      }
+    };
+
+    const fetchCompleted = async () => {
+      await migrate();
+      const ids = await getCompletedLessons();
+      setIsDone(ids.includes(lessonId));
+    };
+
+    fetchCompleted();
+  }, [lessonId]);
 
   const toggleComplete = () => {
-    const current = getCompleted();
-    const next = current.includes(lessonId)
-      ? current.filter((id) => id !== lessonId)
-      : [...current, lessonId];
-    setCompleted(next);
-    setCompletedState(next);
+    startTransition(async () => {
+      const result = await toggleLessonProgress(lessonId);
+      if (!result.error) {
+        setIsDone(result.completed);
+      }
+    });
   };
 
-  const isDone = completed.includes(lessonId);
   const course = getCourse(courseId);
   if (!course) notFound();
 
@@ -275,14 +289,15 @@ export default function LessonPage({
           <motion.button
             whileTap={{ scale: 0.96 }}
             onClick={toggleComplete}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            disabled={isPending}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
               isDone
                 ? "bg-green-500/20 border border-green-500/30 text-green-400"
                 : "bg-white/5 border border-white/10 text-white/50 hover:bg-green-500/10 hover:border-green-500/20 hover:text-green-400"
             }`}
           >
             <CheckCircle2 className={`w-4 h-4 ${isDone ? "text-green-400" : "text-white/30"}`} />
-            {isDone ? "完了済み ✓" : "完了にする"}
+            {isPending ? "保存中..." : isDone ? "完了済み ✓" : "完了にする"}
           </motion.button>
 
           <div className="flex gap-3">
