@@ -7,6 +7,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = pathname === "/" || pathname === "/login";
+  const isAdmin = pathname.startsWith("/admin");
 
   // Supabase 環境変数が未設定の場合はそのまま通す
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -47,6 +48,21 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);
+    }
+
+    // /admin ルート: is_teacher チェック
+    if (user && isAdmin) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_teacher")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.is_teacher) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
     }
   } catch {
     // Supabase 接続エラー時はそのまま通す
