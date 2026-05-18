@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { courses } from "@/data/courses";
 import { getAllQuestions } from "@/data/analysis-questions";
 import { redirect } from "next/navigation";
-import { Users, BookOpen, CheckCircle2, GraduationCap, Brain } from "lucide-react";
+import Link from "next/link";
+import { Users, BookOpen, CheckCircle2, GraduationCap, Brain, ChevronRight } from "lucide-react";
 
 // 全コースの全レッスン数
 const totalLessonsPerCourse = Object.fromEntries(
@@ -230,10 +231,16 @@ export default async function AdminPage() {
                   return (
                     <tr
                       key={student.userId}
-                      className="hover:bg-white/5 transition-colors"
+                      className="hover:bg-white/5 transition-colors cursor-pointer group"
                     >
                       <td className="px-5 py-3 text-white/70 font-mono text-xs">
-                        {student.email}
+                        <Link
+                          href={`/admin/students/${student.userId}`}
+                          className="flex items-center gap-2 hover:text-white transition-colors"
+                        >
+                          {student.email}
+                          <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
+                        </Link>
                       </td>
                       {courses.map((course) => {
                         const completed =
