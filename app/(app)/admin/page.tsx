@@ -1,13 +1,17 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { courses } from "@/data/courses";
+import { getAllQuestions } from "@/data/analysis-questions";
 import { redirect } from "next/navigation";
-import { Users, BookOpen, CheckCircle2, GraduationCap } from "lucide-react";
+import { Users, BookOpen, CheckCircle2, GraduationCap, Brain } from "lucide-react";
 
 // 全コースの全レッスン数
 const totalLessonsPerCourse = Object.fromEntries(
   courses.map((c) => [c.id, c.totalLessons])
 );
+
+// 全問数（analysis-questions.tsから正確に取得）
+const totalAnalysisQuestions = getAllQuestions().length;
 
 // lesson_id は "{courseId}-{lessonId}" 形式で保存されていると仮定
 // courses.ts の lessons[].id は "no1" 等なので、コースIDと合わせて識別
@@ -26,6 +30,7 @@ type StudentProgress = {
   userId: string;
   email: string;
   progressByCourse: Record<string, number>;
+  analysisAnswerCount: number;
 };
 
 export default async function AdminPage() {
@@ -77,7 +82,18 @@ export default async function AdminPage() {
     );
   }
 
-  // ユーザーごとの進捗を集計
+  // 全 analysis_answers 取得（回答数のカウントのみ）
+  const { data: analysisData } = await admin
+    .from("analysis_answers")
+    .select("user_id, question_id");
+
+  // ユーザーごとの自己分析回答数を集計
+  const analysisCountMap: Record<string, number> = {};
+  for (const row of analysisData ?? []) {
+    analysisCountMap[row.user_id] = (analysisCountMap[row.user_id] ?? 0) + 1;
+  }
+
+  // ユーザーごとのコース進捗を集計
   const progressMap: Record<string, Record<string, number>> = {};
   for (const row of progressData ?? []) {
     if (!progressMap[row.user_id]) {
@@ -98,6 +114,7 @@ export default async function AdminPage() {
       userId: u.id,
       email: u.email ?? "(メールなし)",
       progressByCourse: progressMap[u.id] ?? {},
+      analysisAnswerCount: analysisCountMap[u.id] ?? 0,
     }));
 
   const totalStudents = students.length;
@@ -185,6 +202,12 @@ export default async function AdminPage() {
                       {course.shortTitle}
                     </th>
                   ))}
+                  <th className="px-4 py-3 text-center text-xs font-medium text-white/40 uppercase tracking-wider whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-1">
+                      <Brain className="w-3 h-3" />
+                      <span>自己分析</span>
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-white/40 uppercase tracking-wider">
                     合計
                   </th>
@@ -195,6 +218,14 @@ export default async function AdminPage() {
                   const totalCompleted = Object.values(
                     student.progressByCourse
                   ).reduce((s, v) => s + v, 0);
+
+                  const analysisCount = student.analysisAnswerCount;
+                  const isAnalysisComplete = analysisCount >= totalAnalysisQuestions;
+                  const analysisColor = isAnalysisComplete
+                    ? "text-green-400"
+                    : analysisCount > 0
+                    ? "text-amber-400"
+                    : "text-white/25";
 
                   return (
                     <tr
@@ -244,6 +275,28 @@ export default async function AdminPage() {
                           </td>
                         );
                       })}
+                      {/* 自己分析カラム */}
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`text-xs font-medium ${analysisColor}`}>
+                            {analysisCount}/{totalAnalysisQuestions}
+                          </span>
+                          <div className="w-16 h-1 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                isAnalysisComplete
+                                  ? "bg-green-400"
+                                  : analysisCount > 0
+                                  ? "bg-amber-400"
+                                  : "bg-transparent"
+                              }`}
+                              style={{
+                                width: `${Math.round((analysisCount / totalAnalysisQuestions) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <CheckCircle2

@@ -1,12 +1,18 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { categories } from "@/data/analysis-questions";
 import { Brain, ChevronDown, ChevronUp, Save, CheckCircle2, Share2, Link2 } from "lucide-react";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
+import {
+  getAnalysisAnswers,
+  saveAnalysisAnswer,
+  migrateAnalysisFromLocalStorage,
+} from "@/app/actions/analysis";
 
 const STORAGE_KEY = "shonan_juku_analysis";
+const MIGRATION_FLAG = "shonan_juku_analysis_migrated";
 
 export default function AnalysisPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -15,12 +21,30 @@ export default function AnalysisPage() {
   });
   const [saved, setSaved] = useState(false);
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
+  const [isLoading, setIsLoading] = useState(true);
 
+  // 初回マウント: マイグレーション → DB読み込み
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try { setAnswers(JSON.parse(stored)); } catch {}
-    }
+    const init = async () => {
+      // localStorageのマイグレーション（1回だけ）
+      if (!localStorage.getItem(MIGRATION_FLAG)) {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          try {
+            const localAnswers = JSON.parse(stored) as Record<string, string>;
+            await migrateAnalysisFromLocalStorage(localAnswers);
+          } catch {}
+        }
+        localStorage.setItem(MIGRATION_FLAG, "1");
+      }
+
+      // DBから回答を取得
+      const dbAnswers = await getAnalysisAnswers();
+      setAnswers(dbAnswers);
+      setIsLoading(false);
+    };
+
+    init();
   }, []);
 
   const handleAnswer = (questionId: string, value: string) => {
@@ -28,11 +52,12 @@ export default function AnalysisPage() {
     setSaved(false);
   };
 
-  const handleSave = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
+  const handleSave = useCallback(async () => {
+    // 全回答をまとめてupsert（migrateAnalysisFromLocalStorageを流用）
+    await migrateAnalysisFromLocalStorage(answers);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-  };
+  }, [answers]);
 
   const handleShare = async () => {
     const encoded = btoa(encodeURIComponent(JSON.stringify(answers)));
@@ -70,7 +95,7 @@ export default function AnalysisPage() {
                 自己分析シート
               </h1>
               <p className="text-xs text-white/40">
-                全40問｜{totalAnswered}/{totalQuestions} 回答済み
+                {isLoading ? "読み込み中..." : `全40問｜${totalAnswered}/${totalQuestions} 回答済み`}
               </p>
             </div>
           </div>
@@ -97,7 +122,8 @@ export default function AnalysisPage() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={handleSave}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/20 transition-colors"
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/20 transition-colors disabled:opacity-50"
             >
               {saved ? (
                 <>
@@ -210,6 +236,11 @@ export default function AnalysisPage() {
                             <textarea
                               value={answers[question.id] ?? ""}
                               onChange={(e) => handleAnswer(question.id, e.target.value)}
+                              onBlur={(e) => {
+                                // フォーカスが外れたタイミングで個別保存
+                                const val = e.target.value;
+                                saveAnalysisAnswer(question.id, val).catch(() => {});
+                              }}
                               placeholder="ここに回答を入力してください..."
                               rows={4}
                               className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none transition-colors leading-relaxed"
@@ -237,7 +268,8 @@ export default function AnalysisPage() {
         </button>
         <button
           onClick={handleSave}
-          className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-shadow"
+          disabled={isLoading}
+          className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-shadow disabled:opacity-50"
         >
           {saved ? (
             <><CheckCircle2 className="w-4 h-4" />保存しました</>
