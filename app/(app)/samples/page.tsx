@@ -100,6 +100,21 @@ const PERSON_FILE_NAMES: Record<string, Record<string, string>> = {
     "04": "任意④",
     "05": "任意⑤",
   },
+  // 山根小夏
+  "16_yamane": {
+    "01": "任意提出資料① ミルタン",
+    "02": "任意提出資料③ ランドセル",
+    "03": "任意提出資料④ レゴ",
+    "04": "任意提出資料⑤ 英語",
+    "05": "任意提出資料⑦ ガールスカウト",
+  },
+  // 外所もみじ
+  "17_tonosho": {
+    "01": "資料1 研究テーマ",
+    "02": "資料2 RM・視察活動",
+    "03": "資料3 OD・ビジネス活動",
+    "04": "資料4 コンテスト・学園内活動",
+  },
 };
 
 // ファイルサイズ整形
@@ -139,6 +154,11 @@ const NAME_MAP: Record<string, string> = {
   "11_fujiwara":    "藤原春愛",
   "12_ogawara":     "大河原颯",
   "14_yoshimura":   "吉村隆志",
+  // 新規生徒
+  "16_yamane-konatsu": "山根小夏",
+  "17_tonosho-momiji": "外所もみじ",
+  "16_yamane":         "山根小夏",
+  "17_tonosho":        "外所もみじ",
 };
 
 // 任意提出資料の人物フォルダ一覧（Supabase のサブフォルダ構造）
@@ -146,6 +166,7 @@ const OPTIONAL_PERSONS = [
   "01_nakamura", "02_shinobe", "03_yamada-yuki", "04_kunimoto",
   "05_domon", "08_tasaka", "10_yamashiro", "11_fujiwara",
   "12_ogawara", "14_yoshimura", "15_yamada-shu",
+  "16_yamane", "17_tonosho",
 ];
 
 // ファイル表示名：人物ごとのマッピング → 任意提出資料①② → 素のベース名
@@ -324,7 +345,7 @@ export default function SamplesPage() {
               <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-serif)" }}>
                 任意提出資料
               </h1>
-              <p className="text-sm text-white/40">合格者資料 · {OPTIONAL_PERSONS.length}名 51資料</p>
+              <p className="text-sm text-white/40">合格者資料 · {OPTIONAL_PERSONS.length}名 60資料</p>
             </div>
           </div>
         </FadeIn>
@@ -436,9 +457,9 @@ export default function SamplesPage() {
         {CATEGORIES.map((cat, i) => {
           let countLabel = "読み込み中...";
           if (cat.id === "optional") {
-            countLabel = `${OPTIONAL_PERSONS.length}名 51資料`;
+            countLabel = `${OPTIONAL_PERSONS.length}名 60資料`;
           } else if (cat.id === "free-writing") {
-            countLabel = catLoading[cat.id] ? "読み込み中..." : "14名 28資料";
+            countLabel = catLoading[cat.id] ? "読み込み中..." : "16名 32資料";
           } else {
             countLabel = catLoading[cat.id]
               ? "読み込み中..."
