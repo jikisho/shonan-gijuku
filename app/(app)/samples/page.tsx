@@ -155,10 +155,11 @@ const NAME_MAP: Record<string, string> = {
   "12_ogawara":     "大河原颯",
   "14_yoshimura":   "吉村隆志",
   // 新規生徒
-  "16_yamane-konatsu": "山根小夏",
-  "17_tonosho-momiji": "外所もみじ",
-  "16_yamane":         "山根小夏",
-  "17_tonosho":        "外所もみじ",
+  "16_yamane-konatsu":    "山根小夏",
+  "17_tonosho-momiji":    "外所もみじ",
+  "18_mizutani-shunsuke": "水谷俊介",
+  "16_yamane":            "山根小夏",
+  "17_tonosho":           "外所もみじ",
 };
 
 // 任意提出資料の人物フォルダ一覧（Supabase のサブフォルダ構造）
