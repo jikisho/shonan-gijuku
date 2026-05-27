@@ -158,6 +158,7 @@ const NAME_MAP: Record<string, string> = {
   "16_yamane-konatsu":    "山根小夏",
   "17_tonosho-momiji":    "外所もみじ",
   "18_mizutani-shunsuke": "水谷俊介",
+  "19_saito-mai":         "齋藤真衣",
   "16_yamane":            "山根小夏",
   "17_tonosho":           "外所もみじ",
 };
@@ -167,7 +168,7 @@ const OPTIONAL_PERSONS = [
   "01_nakamura", "02_shinobe", "03_yamada-yuki", "04_kunimoto",
   "05_domon", "08_tasaka", "10_yamashiro", "11_fujiwara",
   "12_ogawara", "14_yoshimura", "15_yamada-shu",
-  "16_yamane", "17_tonosho",
+  "16_yamane", "17_tonosho", "19_saito-mai",
 ];
 
 // ファイル表示名：人物ごとのマッピング → 任意提出資料①② → 素のベース名
