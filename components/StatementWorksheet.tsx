@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { statementParagraphs, STATEMENT_WORKSHEET_KEY } from "@/data/worksheets";
-import { Save, CheckCircle2, Share2, Link2, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, CheckCircle2, Link2, ChevronDown, ChevronUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface StatementAnswers {
@@ -107,13 +107,22 @@ export default function StatementWorksheet() {
   const handleShare = async () => {
     const encoded = btoa(encodeURIComponent(JSON.stringify(answers)));
     const url = `${window.location.origin}/worksheets/statement/view?d=${encoded}`;
-    if (navigator.share) {
-      await navigator.share({ title: "志望理由書 アイデア書き出し", url });
-    } else {
+    try {
       await navigator.clipboard.writeText(url);
-      setShareState("copied");
-      setTimeout(() => setShareState("idle"), 2500);
+    } catch {
+      // clipboard API が使えない場合のフォールバック
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
     }
+    setShareState("copied");
+    setTimeout(() => setShareState("idle"), 2500);
   };
 
   const toggle = (num: number) => setOpenSections((p) => ({ ...p, [num]: !p[num] }));
@@ -133,8 +142,8 @@ export default function StatementWorksheet() {
       {/* 保存・共有 */}
       <div className="flex gap-2 justify-end mb-2">
         <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/50 text-xs hover:bg-white/10 transition-colors">
-          {shareState === "copied" ? <Link2 className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5" />}
-          {shareState === "copied" ? "コピー済み" : "共有"}
+          {shareState === "copied" ? <Link2 className="w-3.5 h-3.5 text-green-400" /> : <Link2 className="w-3.5 h-3.5" />}
+          {shareState === "copied" ? "コピー済み！" : "URLをコピー"}
         </button>
         <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/15 border border-blue-500/20 text-blue-400 text-xs hover:bg-blue-500/20 transition-colors">
           {saved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
@@ -204,8 +213,8 @@ export default function StatementWorksheet() {
       {/* 下部保存ボタン */}
       <div className="flex flex-col sm:flex-row gap-3 pt-4">
         <button onClick={handleShare} className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm font-medium hover:bg-white/10 transition-colors">
-          <Share2 className="w-4 h-4" />
-          アイデアを共有する
+          <Link2 className="w-4 h-4" />
+          {shareState === "copied" ? "URLをコピーしました！" : "URLをコピーして共有"}
         </button>
         <button onClick={handleSave} className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/20 transition-shadow">
           {saved ? <><CheckCircle2 className="w-4 h-4" />保存しました</> : <><Save className="w-4 h-4" />保存する</>}
