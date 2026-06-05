@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { statementParagraphs, STATEMENT_WORKSHEET_KEY } from "@/data/worksheets";
 import { Save, CheckCircle2, Share2, Link2, ChevronDown, ChevronUp } from "lucide-react";
@@ -15,6 +15,8 @@ export default function StatementWorksheet() {
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
   const [saved, setSaved] = useState(false);
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstLoad = useRef(true);
 
   // 初回ロード：Supabase優先、fallback localStorage
   useEffect(() => {
@@ -42,12 +44,42 @@ export default function StatementWorksheet() {
     })();
   }, []);
 
+  // 入力変更時：localStorageに即保存 + Supabaseへdebounce自動保存
   const update = (num: number, field: "title" | "notes", value: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [num]: { ...prev[num], title: prev[num]?.title ?? "", notes: prev[num]?.notes ?? "", [field]: value },
-    }));
+    setAnswers((prev) => {
+      const next = {
+        ...prev,
+        [num]: { ...prev[num], title: prev[num]?.title ?? "", notes: prev[num]?.notes ?? "", [field]: value },
+      };
+      // localStorageに即時保存
+      try { localStorage.setItem(STATEMENT_WORKSHEET_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
     setSaved(false);
+
+    // Supabaseへ3秒後に自動保存
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      setAnswers((current) => {
+        autoSaveToSupabase(current);
+        return current;
+      });
+    }, 3000);
+  };
+
+  const autoSaveToSupabase = async (data: StatementAnswers) => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("statement_worksheets").upsert(
+          { user_id: user.id, data, updated_at: new Date().toISOString() },
+          { onConflict: "user_id" }
+        );
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch {}
   };
 
   const handleSave = async () => {

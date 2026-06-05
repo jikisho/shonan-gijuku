@@ -34,6 +34,9 @@ export default function LessonPage({
   const [isDone, setIsDone] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  // "{courseId}-{lessonId}" 形式のキー
+  const fullLessonId = `${courseId}-${lessonId}`;
+
   // 初回マウント時: localStorageマイグレーション → DB取得
   useEffect(() => {
     const migrate = async () => {
@@ -52,15 +55,15 @@ export default function LessonPage({
     const fetchCompleted = async () => {
       await migrate();
       const ids = await getCompletedLessons();
-      setIsDone(ids.includes(lessonId));
+      setIsDone(ids.includes(fullLessonId));
     };
 
     fetchCompleted();
-  }, [lessonId]);
+  }, [fullLessonId]);
 
   const toggleComplete = () => {
     startTransition(async () => {
-      const result = await toggleLessonProgress(lessonId);
+      const result = await toggleLessonProgress(fullLessonId);
       if (!result.error) {
         setIsDone(result.completed);
       }

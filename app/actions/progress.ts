@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 /**
  * 特定レッスンの完了状態を切り替える
+ * lessonId は "{courseId}-{lessonId}" 形式で渡す
  */
 export async function toggleLessonProgress(lessonId: string): Promise<{ completed: boolean; error?: string }> {
   const supabase = await createClient()
@@ -47,6 +48,7 @@ export async function toggleLessonProgress(lessonId: string): Promise<{ complete
 
 /**
  * ユーザーの完了済みレッスンID一覧を取得
+ * 返値は "{courseId}-{lessonId}" 形式
  */
 export async function getCompletedLessons(): Promise<string[]> {
   const supabase = await createClient()
@@ -64,6 +66,7 @@ export async function getCompletedLessons(): Promise<string[]> {
 
 /**
  * localStorageの進捗をDBに一括マイグレーション（初回ログイン時用）
+ * 旧形式（"no1"）は "statement-no1" に変換して保存
  */
 export async function migrateLocalStorageProgress(lessonIds: string[]): Promise<{ error?: string }> {
   if (lessonIds.length === 0) return {}
@@ -73,6 +76,11 @@ export async function migrateLocalStorageProgress(lessonIds: string[]): Promise<
 
   if (authError || !user) return { error: 'Unauthorized' }
 
+  // 旧形式（"no1" など）を "statement-no1" に変換
+  const normalizedIds = lessonIds.map((id) =>
+    /^no\d+$/.test(id) ? `statement-${id}` : id
+  )
+
   // DBに既にあるものを取得
   const { data: existing } = await supabase
     .from('lesson_progress')
@@ -80,7 +88,7 @@ export async function migrateLocalStorageProgress(lessonIds: string[]): Promise<
     .eq('user_id', user.id)
 
   const existingIds = new Set((existing ?? []).map((r) => r.lesson_id))
-  const newIds = lessonIds.filter((id) => !existingIds.has(id))
+  const newIds = normalizedIds.filter((id) => !existingIds.has(id))
 
   if (newIds.length === 0) return {}
 
