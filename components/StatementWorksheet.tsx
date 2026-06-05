@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { statementParagraphs, STATEMENT_WORKSHEET_KEY } from "@/data/worksheets";
 import { Save, CheckCircle2, Share2, Link2, ChevronDown, ChevronUp } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface StatementAnswers {
   [key: string]: { title: string; notes: string };
@@ -15,11 +16,30 @@ export default function StatementWorksheet() {
   const [saved, setSaved] = useState(false);
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
 
+  // 初回ロード：Supabase優先、fallback localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STATEMENT_WORKSHEET_KEY);
-      if (stored) setAnswers(JSON.parse(stored));
-    } catch {}
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from("statement_worksheets")
+            .select("data")
+            .eq("user_id", user.id)
+            .single();
+          if (data?.data && Object.keys(data.data).length > 0) {
+            setAnswers(data.data as StatementAnswers);
+            return;
+          }
+        }
+      } catch {}
+      // fallback: localStorage
+      try {
+        const stored = localStorage.getItem(STATEMENT_WORKSHEET_KEY);
+        if (stored) setAnswers(JSON.parse(stored));
+      } catch {}
+    })();
   }, []);
 
   const update = (num: number, field: "title" | "notes", value: string) => {
@@ -30,8 +50,24 @@ export default function StatementWorksheet() {
     setSaved(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    // localStorage に保存
     localStorage.setItem(STATEMENT_WORKSHEET_KEY, JSON.stringify(answers));
+
+    // Supabase にも保存（ログイン済みの場合）
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("statement_worksheets")
+          .upsert(
+            { user_id: user.id, data: answers, updated_at: new Date().toISOString() },
+            { onConflict: "user_id" }
+          );
+      }
+    } catch {}
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };

@@ -1,9 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { categories } from "@/data/analysis-questions";
+import { statementParagraphs } from "@/data/worksheets";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Brain, MessageSquare, MinusCircle } from "lucide-react";
+import { ArrowLeft, Brain, MessageSquare, MinusCircle, PenLine } from "lucide-react";
 
 type Props = {
   params: Promise<{ userId: string }>;
@@ -55,6 +56,20 @@ export default async function StudentDetailPage({ params }: Props) {
     .select("question_id, answer, updated_at")
     .eq("user_id", userId);
 
+  // 志望理由書アイデア書き出しを取得
+  const { data: statementData } = await admin
+    .from("statement_worksheets")
+    .select("data, updated_at")
+    .eq("user_id", userId)
+    .single();
+
+  type StatementAnswers = Record<string, { title: string; notes: string }>;
+  const statementAnswers: StatementAnswers = (statementData?.data as StatementAnswers) ?? {};
+  const statementUpdatedAt = statementData?.updated_at ?? null;
+  const statementFilledCount = Object.values(statementAnswers).filter(
+    (a) => a?.title?.trim() || a?.notes?.trim()
+  ).length;
+
   if (answersError) {
     return (
       <div className="p-8 text-red-400">
@@ -89,7 +104,7 @@ export default async function StudentDetailPage({ params }: Props) {
       {/* ヘッダー */}
       <div className="mb-8">
         <p className="text-xs tracking-[0.25em] text-amber-400/60 uppercase mb-2">
-          生徒の自己分析シート
+          生徒の学習状況
         </p>
         <h1
           className="text-2xl md:text-3xl font-bold text-white break-all"
@@ -97,7 +112,7 @@ export default async function StudentDetailPage({ params }: Props) {
         >
           {targetUser.email}
         </h1>
-        <div className="flex items-center gap-3 mt-3">
+        <div className="flex flex-wrap items-center gap-4 mt-3">
           <div className="flex items-center gap-1.5 text-sm">
             <Brain className="w-4 h-4 text-amber-400" />
             <span
@@ -109,25 +124,84 @@ export default async function StudentDetailPage({ params }: Props) {
                   : "text-white/40"
               }`}
             >
-              {answeredCount} / {totalCount} 問回答済み
+              自己分析 {answeredCount} / {totalCount}
             </span>
           </div>
-          {/* プログレスバー */}
-          <div className="flex-1 max-w-xs h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${
-                answeredCount >= totalCount
-                  ? "bg-green-400"
-                  : answeredCount > 0
-                  ? "bg-amber-400"
-                  : "bg-transparent"
+          <div className="flex items-center gap-1.5 text-sm">
+            <PenLine className="w-4 h-4 text-blue-400" />
+            <span
+              className={`font-semibold ${
+                statementFilledCount >= statementParagraphs.length
+                  ? "text-green-400"
+                  : statementFilledCount > 0
+                  ? "text-blue-400"
+                  : "text-white/40"
               }`}
-              style={{
-                width: `${Math.round((answeredCount / totalCount) * 100)}%`,
-              }}
-            />
+            >
+              志望理由書アイデア {statementFilledCount} / {statementParagraphs.length}
+            </span>
           </div>
         </div>
+      </div>
+
+      {/* ─── 志望理由書アイデア書き出し ─── */}
+      <div className="mb-10">
+        <div className="flex items-center gap-2 mb-4">
+          <PenLine className="w-4 h-4 text-blue-400" />
+          <h2 className="text-sm font-semibold text-white/80">志望理由書 アイデア書き出し</h2>
+          {statementUpdatedAt && (
+            <span className="text-xs text-white/25 ml-auto">
+              最終更新: {new Date(statementUpdatedAt).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })}
+            </span>
+          )}
+        </div>
+
+        {statementFilledCount === 0 ? (
+          <div className="glass-card rounded-xl p-6 text-center text-white/30 text-sm">
+            まだ入力されていません
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {statementParagraphs.map((para) => {
+              const ans = statementAnswers[para.number];
+              const hasContent = ans?.title?.trim() || ans?.notes?.trim();
+              return (
+                <div key={para.number} className="glass-card rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5">
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 text-xs font-bold ${hasContent ? "bg-blue-500/20 text-blue-400" : "bg-white/5 text-white/20"}`}>
+                      {para.number}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-white/70">{para.label}</p>
+                      <p className="text-[10px] text-white/30">{para.role}</p>
+                    </div>
+                  </div>
+                  {hasContent ? (
+                    <div className="px-4 py-3 space-y-2">
+                      {ans?.title?.trim() && (
+                        <div>
+                          <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">タイトル</p>
+                          <p className="text-sm text-white/80 font-medium">{ans.title}</p>
+                        </div>
+                      )}
+                      {ans?.notes?.trim() && (
+                        <div>
+                          <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">メモ</p>
+                          <p className="text-sm text-white/65 leading-relaxed whitespace-pre-wrap">{ans.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 flex items-center gap-2 text-white/20">
+                      <MinusCircle className="w-3.5 h-3.5" />
+                      <span className="text-xs">未入力</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* カテゴリごとの回答一覧 */}
