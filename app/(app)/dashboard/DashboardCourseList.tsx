@@ -31,7 +31,7 @@ export default function DashboardCourseList({ courses, completed }: Props) {
     <div className="grid md:grid-cols-2 gap-3 md:gap-4 mb-8 md:mb-10">
       {courses.map((course, i) => {
         const courseCompleted = course.lessons.filter((l) =>
-          completed.includes(l.id)
+          completed.includes(`${course.id}-${l.id}`)
         ).length;
         const pct = Math.round((courseCompleted / course.totalLessons) * 100);
         return (

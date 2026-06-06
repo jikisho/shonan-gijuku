@@ -8,8 +8,7 @@ import { getCourse } from "@/data/courses";
 import { ArrowLeft, Play, CheckCircle2, BookOpen, PenLine, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn, FadeInList } from "@/components/PageMotion";
-
-const PROGRESS_KEY = "shonan_juku_progress";
+import { getCompletedLessons } from "@/app/actions/progress";
 
 const phaseColorMap: Record<string, string> = {
   phase1: "text-blue-400 bg-blue-500/10 border-blue-500/20",
@@ -28,7 +27,7 @@ export default function CoursePage({
 
   const [completed, setCompleted] = useState<string[]>([]);
   useEffect(() => {
-    try { setCompleted(JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? "[]")); } catch {}
+    getCompletedLessons().then((ids) => setCompleted(ids));
   }, []);
 
   const phases = Array.from(new Set(course.lessons.map((l) => l.phase)));
@@ -108,7 +107,7 @@ export default function CoursePage({
                             {lesson.description}
                           </p>
                         </div>
-                        <CheckCircle2 className={`w-4 h-4 shrink-0 ${completed.includes(lesson.id) ? "text-green-400" : "text-white/10"}`} />
+                        <CheckCircle2 className={`w-4 h-4 shrink-0 ${completed.includes(`${courseId}-${lesson.id}`) ? "text-green-400" : "text-white/10"}`} />
                       </motion.div>
                     </Link>
                   </FadeInList>

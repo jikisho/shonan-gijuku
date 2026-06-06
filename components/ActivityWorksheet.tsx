@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ACTIVITY_STORAGE_KEY, defaultActivityData,
   ActivityData, ActivityEntry, OrganizationEntry, CompetitionEntry, QualificationEntry,
 } from "@/data/worksheets";
 import { Save, CheckCircle2, Share2, Link2, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 // ── helpers ──────────────────────────────────────────────────────────
 const inputCls = "bg-transparent text-white/80 placeholder-white/15 text-xs focus:outline-none w-full px-2 py-1.5";
@@ -41,34 +42,88 @@ export default function ActivityWorksheet() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 初回ロード：Supabase優先、fallback localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(ACTIVITY_STORAGE_KEY);
-      if (stored) {
-        const p = JSON.parse(stored);
-        const def = defaultActivityData();
-        setData({
-          ...def, ...p,
-          academics:         [...(p.academics        ?? []), ...def.academics       ].slice(0, 6),
-          overseas:          [...(p.overseas          ?? []), ...def.overseas        ].slice(0, 4),
-          activities:        [...(p.activities        ?? []), ...def.activities      ].slice(0, 10),
-          optionalMaterials: [...(p.optionalMaterials ?? []), ...def.optionalMaterials].slice(0, 10),
-          orgs:              [...(p.orgs              ?? []), ...def.orgs            ].slice(0, 5),
-          competitions:      [...(p.competitions      ?? []), ...def.competitions    ].slice(0, 5),
-          qualifications:    [...(p.qualifications    ?? []), ...def.qualifications  ].slice(0, 5),
-        });
-      }
-    } catch {}
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: row } = await supabase
+            .from("activity_worksheets")
+            .select("data")
+            .eq("user_id", user.id)
+            .single();
+          if (row?.data && Object.keys(row.data).length > 0) {
+            setData(row.data as ActivityData);
+            return;
+          }
+        }
+      } catch {}
+      // fallback: localStorage
+      try {
+        const stored = localStorage.getItem(ACTIVITY_STORAGE_KEY);
+        if (stored) {
+          const p = JSON.parse(stored);
+          const def = defaultActivityData();
+          setData({
+            ...def, ...p,
+            academics:         [...(p.academics        ?? []), ...def.academics       ].slice(0, 6),
+            overseas:          [...(p.overseas          ?? []), ...def.overseas        ].slice(0, 4),
+            activities:        [...(p.activities        ?? []), ...def.activities      ].slice(0, 10),
+            optionalMaterials: [...(p.optionalMaterials ?? []), ...def.optionalMaterials].slice(0, 10),
+            orgs:              [...(p.orgs              ?? []), ...def.orgs            ].slice(0, 5),
+            competitions:      [...(p.competitions      ?? []), ...def.competitions    ].slice(0, 5),
+            qualifications:    [...(p.qualifications    ?? []), ...def.qualifications  ].slice(0, 5),
+          });
+        }
+      } catch {}
+    })();
   }, []);
 
-  const mut = (fn: (prev: ActivityData) => ActivityData) => {
-    setData(fn);
-    setSaved(false);
+  const autoSaveToSupabase = async (current: ActivityData) => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("activity_worksheets").upsert(
+          { user_id: user.id, data: current, updated_at: new Date().toISOString() },
+          { onConflict: "user_id" }
+        );
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch {}
   };
 
-  const handleSave = () => {
+  const mut = (fn: (prev: ActivityData) => ActivityData) => {
+    setData((prev) => {
+      const next = fn(prev);
+      // localStorageに即時保存
+      try { localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(next)); } catch {}
+      // Supabaseへ3秒後に自動保存
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = setTimeout(() => {
+        autoSaveToSupabase(next);
+      }, 3000);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
     localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(data));
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("activity_worksheets").upsert(
+          { user_id: user.id, data, updated_at: new Date().toISOString() },
+          { onConflict: "user_id" }
+        );
+      }
+    } catch {}
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
