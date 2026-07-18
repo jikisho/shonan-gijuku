@@ -36,6 +36,361 @@ const sections = [
   { id: "other",            label: "💬 その他",                  en: "Additional Information", sub: "500字以内" },
 ];
 
+// ── SectionContent（コンポーネント外で定義してアンマウントバグを防ぐ）──
+type MutFn = (fn: (prev: ActivityData) => ActivityData) => void;
+
+function SectionContent({ id, data, mut }: { id: string; data: ActivityData; mut: MutFn }) {
+  // 入学時期
+  if (id === "enrollmentPeriod") return (
+    <div className="px-5 py-5 space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3">
+        {(["april", "september"] as const).map((v) => (
+          <button key={v} onClick={() => mut((p) => ({ ...p, enrollmentPeriod: p.enrollmentPeriod === v ? "" : v }))}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm transition-colors ${data.enrollmentPeriod === v ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/10 bg-white/3 text-white/50"}`}>
+            <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${data.enrollmentPeriod === v ? "border-blue-400" : "border-white/20"}`}>
+              {data.enrollmentPeriod === v && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 block" />}
+            </span>
+            {v === "april" ? "2024年04月入学（April 2024）" : "2024年09月入学（September 2024）"}
+          </button>
+        ))}
+      </div>
+      <div className="rounded-xl border border-white/8 overflow-hidden">
+        <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
+          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">理由 Reason（必須）入学時期を選んだ理由＋入学までの学習計画</p>
+          <CharCount val={data.enrollmentReason} max={200} />
+        </div>
+        <textarea value={data.enrollmentReason} onChange={(e) => mut((p) => ({ ...p, enrollmentReason: e.target.value }))}
+          placeholder="例）4月入学を選んだ理由は..."
+          rows={4} maxLength={200}
+          className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
+      </div>
+    </div>
+  );
+
+  // 学歴
+  if (id === "academics") return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[700px]">
+        <thead>
+          <tr className="border-b border-white/8 bg-white/2">
+            <th className={thCls("w-36")}>学校名（20字以内）</th>
+            <th className={thCls("w-24")}>所在地</th>
+            <th className={thCls("w-16")}>開始年</th>
+            <th className={thCls("w-12")}>月</th>
+            <th className={thCls("w-16")}>終了年</th>
+            <th className={thCls("w-12")}>月</th>
+            <th className={thCls()}>在学年月</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.academics.map((row, i) => (
+            <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
+              <td className="border-r border-white/8"><input value={row.name} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], name: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="例）慶應高等学校" className={inputCls} maxLength={20} /></td>
+              <td className="border-r border-white/8"><input value={row.location} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], location: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="例）東京都" className={inputCls} /></td>
+              <td className="border-r border-white/8"><input value={row.startYear} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], startYear: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="2019" className={inputCls} maxLength={4} /></td>
+              <td className="border-r border-white/8"><input value={row.startMonth} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], startMonth: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="4" className={inputCls} maxLength={2} /></td>
+              <td className="border-r border-white/8"><input value={row.endYear} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], endYear: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="2022" className={inputCls} maxLength={4} /></td>
+              <td className="border-r border-white/8"><input value={row.endMonth} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], endMonth: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="3" className={inputCls} maxLength={2} /></td>
+              <td><input value={row.duration} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], duration: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="3年/0ヶ月" className={inputCls} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // 海外滞在
+  if (id === "overseas") return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[700px]">
+        <thead>
+          <tr className="border-b border-white/8 bg-white/2">
+            <th className={thCls("w-28")}>国名（20字以内）</th>
+            <th className={thCls("w-20")}>帯同者</th>
+            <th className={thCls("w-16")}>開始年</th>
+            <th className={thCls("w-12")}>月</th>
+            <th className={thCls("w-16")}>終了年</th>
+            <th className={thCls("w-12")}>月</th>
+            <th className={thCls()}>目的（留学の場合は派遣団体等）</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.overseas.map((row, i) => (
+            <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
+              <td className="border-r border-white/8"><input value={row.country} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], country: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="例）カナダ" className={inputCls} maxLength={20} /></td>
+              <td className="border-r border-white/8"><input value={row.companion} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], companion: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="なし" className={inputCls} /></td>
+              <td className="border-r border-white/8"><input value={row.startYear} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], startYear: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="2022" className={inputCls} maxLength={4} /></td>
+              <td className="border-r border-white/8"><input value={row.startMonth} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], startMonth: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="9" className={inputCls} maxLength={2} /></td>
+              <td className="border-r border-white/8"><input value={row.endYear} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], endYear: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="2023" className={inputCls} maxLength={4} /></td>
+              <td className="border-r border-white/8"><input value={row.endMonth} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], endMonth: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="6" className={inputCls} maxLength={2} /></td>
+              <td><input value={row.purpose} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], purpose: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="慶應高等学校（留学）" className={inputCls} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // 中学卒業後の進路
+  if (id === "juniorHighPath") return (
+    <div className="px-5 py-5">
+      <p className="text-[11px] text-white/30 leading-relaxed mb-3 italic">複数のコース・クラス・カリキュラムがある場合、どれを選んだか・その理由を記入。なければ空欄でOK。</p>
+      <div className="rounded-xl border border-white/8 overflow-hidden">
+        <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
+          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">コース・クラス選択の理由</p>
+          <CharCount val={data.juniorHighPath} max={200} />
+        </div>
+        <textarea value={data.juniorHighPath} onChange={(e) => mut((p) => ({ ...p, juniorHighPath: e.target.value }))}
+          placeholder="例）理数科を選んだのは..." rows={4} maxLength={200}
+          className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
+      </div>
+    </div>
+  );
+
+  // 活動報告自己評価
+  if (id === "selfEval") return (
+    <div className="px-5 py-5">
+      <p className="text-[11px] text-white/30 leading-relaxed mb-3 italic">学業を含めたさまざまな活動の中で、最も自己評価した内容とその理由。別添資料がある場合は任意提出資料番号にチェック。</p>
+      <div className="rounded-xl border border-white/8 overflow-hidden">
+        <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
+          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">自己評価（Self-Evaluation of Achievements）</p>
+          <CharCount val={data.selfEval} max={200} />
+        </div>
+        <textarea value={data.selfEval} onChange={(e) => mut((p) => ({ ...p, selfEval: e.target.value }))}
+          placeholder="例）私が最も自己評価する活動は〇〇です。この活動を選んだ理由は..."
+          rows={5} maxLength={200}
+          className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
+      </div>
+    </div>
+  );
+
+  // 活動記録
+  if (id === "activities") return (
+    <div>
+      <p className="px-5 pt-4 pb-2 text-[11px] text-white/30 italic">中学校卒業後の取り組みと成果。10件以内。◎は特に報告したい活動や成果等を3つまで。</p>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[680px]">
+          <thead>
+            <tr className="border-b border-white/8 bg-white/2">
+              <th className={thCls("w-14")}>西暦年</th>
+              <th className={thCls("w-10")}>月</th>
+              <th className={thCls("w-12")}>学年</th>
+              <th className={thCls("w-10")}>年齢</th>
+              <th className={thCls()}>活動内容（35字以内）</th>
+              <th className={thCls("w-12")}>資料番号</th>
+              <th className="text-[9px] text-white/30 font-semibold px-2 py-2 text-center w-8">◎</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.activities.map((row: ActivityEntry, i: number) => (
+              <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
+                <td className="border-r border-white/8"><input value={row.year} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], year: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="2024" className={inputCls} maxLength={4} /></td>
+                <td className="border-r border-white/8"><input value={row.month} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], month: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="4" className={inputCls} maxLength={2} /></td>
+                <td className="border-r border-white/8"><input value={row.grade} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], grade: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="高3" className={inputCls} maxLength={4} /></td>
+                <td className="border-r border-white/8"><input value={row.age} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], age: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="18" className={inputCls} maxLength={3} /></td>
+                <td className="border-r border-white/8"><input value={row.content} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], content: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="活動内容を入力..." className={inputCls} maxLength={35} /></td>
+                <td className="border-r border-white/8"><input value={row.docNumber} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], docNumber: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="-" className={`${inputCls} text-center`} maxLength={2} /></td>
+                <td className="text-center px-2">
+                  <button onClick={() => { const next = [...data.activities]; next[i] = { ...next[i], featured: !next[i].featured }; mut((p) => ({ ...p, activities: next })); }}
+                    className={`w-5 h-5 flex items-center justify-center mx-auto ${row.featured ? "text-amber-400" : "text-white/15"}`}>
+                    <Star className={`w-3.5 h-3.5 ${row.featured ? "fill-amber-400" : ""}`} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // 任意提出資料
+  if (id === "optionalMaterials") return (
+    <div className="px-5 py-5 space-y-3">
+      <p className="text-[11px] text-white/30 italic">各任意提出資料について、200字以内でその価値を的確にアピールしてください。この200字の出来によって、その資料が教授陣に実際に読まれるかどうかが決まります。</p>
+      {data.optionalMaterials.map((mat, i) => (
+        <div key={i} className="rounded-xl border border-white/8 overflow-hidden">
+          <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
+            <p className="text-[10px] font-semibold text-white/40">資料 {mat.number}</p>
+            <CharCount val={mat.summary} max={200} />
+          </div>
+          <textarea value={mat.summary} onChange={(e) => { const next = [...data.optionalMaterials]; next[i] = { ...next[i], summary: e.target.value }; mut((p) => ({ ...p, optionalMaterials: next })); }}
+            placeholder={`資料${mat.number}の内容と価値を200字以内で...`}
+            rows={3} maxLength={200}
+            className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
+        </div>
+      ))}
+    </div>
+  );
+
+  // 学校・団体等
+  if (id === "orgs") return (
+    <div>
+      <p className="px-5 pt-4 pb-2 text-[11px] text-white/30 italic">部活・委員会・NPO等。活動記録と重複可。◎は特記したい3つまで。</p>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[780px]">
+          <thead>
+            <tr className="border-b border-white/8 bg-white/2">
+              <th className={thCls("w-14")}>開始年</th>
+              <th className={thCls("w-10")}>月</th>
+              <th className={thCls("w-14")}>終了年</th>
+              <th className={thCls("w-10")}>月</th>
+              <th className={thCls("w-12")}>学年</th>
+              <th className={thCls("w-10")}>年齢</th>
+              <th className={thCls()}>組織名（20字以内）</th>
+              <th className={thCls("w-20")}>役職（10字）</th>
+              <th className={thCls("w-12")}>資料番号</th>
+              <th className="text-[9px] text-white/30 font-semibold px-2 py-2 text-center w-8">◎</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.orgs.map((row: OrganizationEntry, i: number) => (
+              <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
+                <td className="border-r border-white/8"><input value={row.startYear} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], startYear: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="2020" className={inputCls} maxLength={4} /></td>
+                <td className="border-r border-white/8"><input value={row.startMonth} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], startMonth: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="4" className={inputCls} maxLength={2} /></td>
+                <td className="border-r border-white/8"><input value={row.endYear} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], endYear: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="2025" className={inputCls} maxLength={4} /></td>
+                <td className="border-r border-white/8"><input value={row.endMonth} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], endMonth: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="3" className={inputCls} maxLength={2} /></td>
+                <td className="border-r border-white/8"><input value={row.grade} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], grade: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="高1" className={inputCls} maxLength={4} /></td>
+                <td className="border-r border-white/8"><input value={row.age} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], age: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="16" className={inputCls} maxLength={3} /></td>
+                <td className="border-r border-white/8"><input value={row.name} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], name: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="例）慶應高校ボランティア部" className={inputCls} maxLength={20} /></td>
+                <td className="border-r border-white/8"><input value={row.role} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], role: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="部長" className={inputCls} maxLength={10} /></td>
+                <td className="border-r border-white/8"><input value={row.docNumber} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], docNumber: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="-" className={`${inputCls} text-center`} maxLength={2} /></td>
+                <td className="text-center px-2">
+                  <button onClick={() => { const next = [...data.orgs]; next[i] = { ...next[i], featured: !next[i].featured }; mut((p) => ({ ...p, orgs: next })); }}
+                    className={`w-5 h-5 flex items-center justify-center mx-auto ${row.featured ? "text-amber-400" : "text-white/15"}`}>
+                    <Star className={`w-3.5 h-3.5 ${row.featured ? "fill-amber-400" : ""}`} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // 競技・コンクール
+  if (id === "competitions") return (
+    <div>
+      <p className="px-5 pt-4 pb-2 text-[11px] text-white/30 italic">活動記録と重複可。◎は特記したい3つまで。</p>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px]">
+          <thead>
+            <tr className="border-b border-white/8 bg-white/2">
+              <th className={thCls("w-14")}>西暦年</th>
+              <th className={thCls("w-10")}>月</th>
+              <th className={thCls("w-10")}>年齢</th>
+              <th className={thCls()}>競技・コンクール等名称（30字）</th>
+              <th className={thCls("w-28")}>主催機関（30字）</th>
+              <th className={thCls("w-24")}>成績・結果（20字）</th>
+              <th className={thCls("w-12")}>資料番号</th>
+              <th className="text-[9px] text-white/30 font-semibold px-2 py-2 text-center w-8">◎</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.competitions.map((row: CompetitionEntry, i: number) => (
+              <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
+                <td className="border-r border-white/8"><input value={row.year} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], year: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="2024" className={inputCls} maxLength={4} /></td>
+                <td className="border-r border-white/8"><input value={row.month} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], month: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="3" className={inputCls} maxLength={2} /></td>
+                <td className="border-r border-white/8"><input value={row.age} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], age: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="17" className={inputCls} maxLength={3} /></td>
+                <td className="border-r border-white/8"><input value={row.name} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], name: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="コンクール名" className={inputCls} maxLength={30} /></td>
+                <td className="border-r border-white/8"><input value={row.organizer} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], organizer: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="主催機関" className={inputCls} maxLength={30} /></td>
+                <td className="border-r border-white/8"><input value={row.result} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], result: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="大賞・優勝等" className={inputCls} maxLength={20} /></td>
+                <td className="border-r border-white/8"><input value={row.docNumber} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], docNumber: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="-" className={`${inputCls} text-center`} maxLength={2} /></td>
+                <td className="text-center px-2">
+                  <button onClick={() => { const next = [...data.competitions]; next[i] = { ...next[i], featured: !next[i].featured }; mut((p) => ({ ...p, competitions: next })); }}
+                    className={`w-5 h-5 flex items-center justify-center mx-auto ${row.featured ? "text-amber-400" : "text-white/15"}`}>
+                    <Star className={`w-3.5 h-3.5 ${row.featured ? "fill-amber-400" : ""}`} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // 団体活動・役割
+  if (id === "groupRole") return (
+    <div className="px-5 py-5">
+      <div className="rounded-xl border border-white/8 overflow-hidden">
+        <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
+          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">団体における役割と実績（Group Activities and Competitions）</p>
+          <CharCount val={data.groupRole} max={100} warn={85} />
+        </div>
+        <textarea value={data.groupRole} onChange={(e) => mut((p) => ({ ...p, groupRole: e.target.value }))}
+          placeholder="これまでに入力した内容の中で団体活動・競技における役割と実績..." rows={3} maxLength={100}
+          className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
+      </div>
+    </div>
+  );
+
+  // スポーツ
+  if (id === "sports") return (
+    <div className="px-5 py-5">
+      <div className="rounded-xl border border-white/8 overflow-hidden">
+        <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
+          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">特に優れた運動能力・内容・記録（Competitive Sports Abilities）</p>
+          <CharCount val={data.sports} max={100} warn={85} />
+        </div>
+        <textarea value={data.sports} onChange={(e) => mut((p) => ({ ...p, sports: e.target.value }))}
+          placeholder="スポーツ競技における特に優れた運動能力とその内容・記録..." rows={3} maxLength={100}
+          className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
+      </div>
+    </div>
+  );
+
+  // 資格・検定
+  if (id === "qualifications") return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[680px]">
+        <thead>
+          <tr className="border-b border-white/8 bg-white/2">
+            <th className={thCls("w-14")}>西暦年</th>
+            <th className={thCls("w-10")}>月</th>
+            <th className={thCls("w-10")}>年齢</th>
+            <th className={thCls()}>資格等の名称（30字）</th>
+            <th className={thCls("w-24")}>資格級位（20字）</th>
+            <th className={thCls("w-28")}>認定機関名（30字）</th>
+            <th className={thCls("w-12")}>資料番号</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.qualifications.map((row: QualificationEntry, i: number) => (
+            <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
+              <td className="border-r border-white/8"><input value={row.year} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], year: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="2023" className={inputCls} maxLength={4} /></td>
+              <td className="border-r border-white/8"><input value={row.month} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], month: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="6" className={inputCls} maxLength={2} /></td>
+              <td className="border-r border-white/8"><input value={row.age} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], age: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="17" className={inputCls} maxLength={3} /></td>
+              <td className="border-r border-white/8"><input value={row.name} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], name: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="実用英語技能検定" className={inputCls} maxLength={30} /></td>
+              <td className="border-r border-white/8"><input value={row.level} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], level: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="準1級" className={inputCls} maxLength={20} /></td>
+              <td className="border-r border-white/8"><input value={row.organization} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], organization: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="公益財団法人日本英語検定協会" className={inputCls} maxLength={30} /></td>
+              <td><input value={row.docNumber} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], docNumber: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="-" className={`${inputCls} text-center`} maxLength={2} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // その他
+  if (id === "other") return (
+    <div className="px-5 py-5">
+      <div className="rounded-xl border border-white/8 overflow-hidden">
+        <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
+          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">その他（Additional Information）</p>
+          <CharCount val={data.other} max={500} warn={450} />
+        </div>
+        <textarea value={data.other} onChange={(e) => mut((p) => ({ ...p, other: e.target.value }))}
+          placeholder="知っておいてほしいことがあれば500字以内で..." rows={5} maxLength={500}
+          className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
+      </div>
+    </div>
+  );
+
+  return null;
+}
+
 // ── main component ────────────────────────────────────────────────────
 export default function ActivityWorksheet() {
   const [data, setData] = useState<ActivityData>(defaultActivityData());
@@ -141,359 +496,6 @@ export default function ActivityWorksheet() {
 
   const toggleSection = (id: string) => setOpenSections((p) => ({ ...p, [id]: !p[id] }));
 
-  // ── section content renderers ─────────────────────────────────────
-  function SectionContent({ id }: { id: string }) {
-    // 入学時期
-    if (id === "enrollmentPeriod") return (
-      <div className="px-5 py-5 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          {(["april", "september"] as const).map((v) => (
-            <button key={v} onClick={() => mut((p) => ({ ...p, enrollmentPeriod: p.enrollmentPeriod === v ? "" : v }))}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm transition-colors ${data.enrollmentPeriod === v ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/10 bg-white/3 text-white/50"}`}>
-              <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${data.enrollmentPeriod === v ? "border-blue-400" : "border-white/20"}`}>
-                {data.enrollmentPeriod === v && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 block" />}
-              </span>
-              {v === "april" ? "2024年04月入学（April 2024）" : "2024年09月入学（September 2024）"}
-            </button>
-          ))}
-        </div>
-        <div className="rounded-xl border border-white/8 overflow-hidden">
-          <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
-            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">理由 Reason（必須）入学時期を選んだ理由＋入学までの学習計画</p>
-            <CharCount val={data.enrollmentReason} max={200} />
-          </div>
-          <textarea value={data.enrollmentReason} onChange={(e) => mut((p) => ({ ...p, enrollmentReason: e.target.value }))}
-            placeholder="例）4月入学を選んだ理由は..."
-            rows={4} maxLength={200}
-            className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
-        </div>
-      </div>
-    );
-
-    // 学歴
-    if (id === "academics") return (
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[700px]">
-          <thead>
-            <tr className="border-b border-white/8 bg-white/2">
-              <th className={thCls("w-36")}>学校名（20字以内）</th>
-              <th className={thCls("w-24")}>所在地</th>
-              <th className={thCls("w-16")}>開始年</th>
-              <th className={thCls("w-12")}>月</th>
-              <th className={thCls("w-16")}>終了年</th>
-              <th className={thCls("w-12")}>月</th>
-              <th className={thCls()}>在学年月</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.academics.map((row, i) => (
-              <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
-                <td className="border-r border-white/8"><input value={row.name} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], name: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="例）慶應高等学校" className={inputCls} maxLength={20} /></td>
-                <td className="border-r border-white/8"><input value={row.location} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], location: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="例）東京都" className={inputCls} /></td>
-                <td className="border-r border-white/8"><input value={row.startYear} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], startYear: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="2019" className={inputCls} maxLength={4} /></td>
-                <td className="border-r border-white/8"><input value={row.startMonth} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], startMonth: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="4" className={inputCls} maxLength={2} /></td>
-                <td className="border-r border-white/8"><input value={row.endYear} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], endYear: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="2022" className={inputCls} maxLength={4} /></td>
-                <td className="border-r border-white/8"><input value={row.endMonth} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], endMonth: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="3" className={inputCls} maxLength={2} /></td>
-                <td><input value={row.duration} onChange={(e) => { const next = [...data.academics]; next[i] = { ...next[i], duration: e.target.value }; mut((p) => ({ ...p, academics: next })); }} placeholder="3年/0ヶ月" className={inputCls} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-
-    // 海外滞在
-    if (id === "overseas") return (
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[700px]">
-          <thead>
-            <tr className="border-b border-white/8 bg-white/2">
-              <th className={thCls("w-28")}>国名（20字以内）</th>
-              <th className={thCls("w-20")}>帯同者</th>
-              <th className={thCls("w-16")}>開始年</th>
-              <th className={thCls("w-12")}>月</th>
-              <th className={thCls("w-16")}>終了年</th>
-              <th className={thCls("w-12")}>月</th>
-              <th className={thCls()}>目的（留学の場合は派遣団体等）</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.overseas.map((row, i) => (
-              <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
-                <td className="border-r border-white/8"><input value={row.country} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], country: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="例）カナダ" className={inputCls} maxLength={20} /></td>
-                <td className="border-r border-white/8"><input value={row.companion} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], companion: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="なし" className={inputCls} /></td>
-                <td className="border-r border-white/8"><input value={row.startYear} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], startYear: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="2022" className={inputCls} maxLength={4} /></td>
-                <td className="border-r border-white/8"><input value={row.startMonth} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], startMonth: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="9" className={inputCls} maxLength={2} /></td>
-                <td className="border-r border-white/8"><input value={row.endYear} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], endYear: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="2023" className={inputCls} maxLength={4} /></td>
-                <td className="border-r border-white/8"><input value={row.endMonth} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], endMonth: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="6" className={inputCls} maxLength={2} /></td>
-                <td><input value={row.purpose} onChange={(e) => { const next = [...data.overseas]; next[i] = { ...next[i], purpose: e.target.value }; mut((p) => ({ ...p, overseas: next })); }} placeholder="慶應高等学校（留学）" className={inputCls} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-
-    // 中学卒業後の進路
-    if (id === "juniorHighPath") return (
-      <div className="px-5 py-5">
-        <p className="text-[11px] text-white/30 leading-relaxed mb-3 italic">複数のコース・クラス・カリキュラムがある場合、どれを選んだか・その理由を記入。なければ空欄でOK。</p>
-        <div className="rounded-xl border border-white/8 overflow-hidden">
-          <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
-            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">コース・クラス選択の理由</p>
-            <CharCount val={data.juniorHighPath} max={200} />
-          </div>
-          <textarea value={data.juniorHighPath} onChange={(e) => mut((p) => ({ ...p, juniorHighPath: e.target.value }))}
-            placeholder="例）理数科を選んだのは..." rows={4} maxLength={200}
-            className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
-        </div>
-      </div>
-    );
-
-    // 活動報告自己評価
-    if (id === "selfEval") return (
-      <div className="px-5 py-5">
-        <p className="text-[11px] text-white/30 leading-relaxed mb-3 italic">学業を含めたさまざまな活動の中で、最も自己評価した内容とその理由。別添資料がある場合は任意提出資料番号にチェック。</p>
-        <div className="rounded-xl border border-white/8 overflow-hidden">
-          <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
-            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">自己評価（Self-Evaluation of Achievements）</p>
-            <CharCount val={data.selfEval} max={200} />
-          </div>
-          <textarea value={data.selfEval} onChange={(e) => mut((p) => ({ ...p, selfEval: e.target.value }))}
-            placeholder="例）私が最も自己評価する活動は〇〇です。この活動を選んだ理由は..."
-            rows={5} maxLength={200}
-            className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
-        </div>
-      </div>
-    );
-
-    // 活動記録
-    if (id === "activities") return (
-      <div>
-        <p className="px-5 pt-4 pb-2 text-[11px] text-white/30 italic">中学校卒業後の取り組みと成果。10件以内。◎は特に報告したい活動や成果等を3つまで。</p>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px]">
-            <thead>
-              <tr className="border-b border-white/8 bg-white/2">
-                <th className={thCls("w-14")}>西暦年</th>
-                <th className={thCls("w-10")}>月</th>
-                <th className={thCls("w-12")}>学年</th>
-                <th className={thCls("w-10")}>年齢</th>
-                <th className={thCls()}>活動内容（35字以内）</th>
-                <th className={thCls("w-12")}>資料番号</th>
-                <th className="text-[9px] text-white/30 font-semibold px-2 py-2 text-center w-8">◎</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.activities.map((row: ActivityEntry, i: number) => (
-                <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
-                  <td className="border-r border-white/8"><input value={row.year} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], year: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="2024" className={inputCls} maxLength={4} /></td>
-                  <td className="border-r border-white/8"><input value={row.month} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], month: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="4" className={inputCls} maxLength={2} /></td>
-                  <td className="border-r border-white/8"><input value={row.grade} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], grade: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="高3" className={inputCls} maxLength={4} /></td>
-                  <td className="border-r border-white/8"><input value={row.age} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], age: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="18" className={inputCls} maxLength={3} /></td>
-                  <td className="border-r border-white/8"><input value={row.content} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], content: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="活動内容を入力..." className={inputCls} maxLength={35} /></td>
-                  <td className="border-r border-white/8"><input value={row.docNumber} onChange={(e) => { const next = [...data.activities]; next[i] = { ...next[i], docNumber: e.target.value }; mut((p) => ({ ...p, activities: next })); }} placeholder="-" className={`${inputCls} text-center`} maxLength={2} /></td>
-                  <td className="text-center px-2">
-                    <button onClick={() => { const next = [...data.activities]; next[i] = { ...next[i], featured: !next[i].featured }; mut((p) => ({ ...p, activities: next })); }}
-                      className={`w-5 h-5 flex items-center justify-center mx-auto ${row.featured ? "text-amber-400" : "text-white/15"}`}>
-                      <Star className={`w-3.5 h-3.5 ${row.featured ? "fill-amber-400" : ""}`} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-
-    // 任意提出資料
-    if (id === "optionalMaterials") return (
-      <div className="px-5 py-5 space-y-3">
-        <p className="text-[11px] text-white/30 italic">各任意提出資料について、200字以内でその価値を的確にアピールしてください。この200字の出来によって、その資料が教授陣に実際に読まれるかどうかが決まります。</p>
-        {data.optionalMaterials.map((mat, i) => (
-          <div key={i} className="rounded-xl border border-white/8 overflow-hidden">
-            <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
-              <p className="text-[10px] font-semibold text-white/40">資料 {mat.number}</p>
-              <CharCount val={mat.summary} max={200} />
-            </div>
-            <textarea value={mat.summary} onChange={(e) => { const next = [...data.optionalMaterials]; next[i] = { ...next[i], summary: e.target.value }; mut((p) => ({ ...p, optionalMaterials: next })); }}
-              placeholder={`資料${mat.number}の内容と価値を200字以内で...`}
-              rows={3} maxLength={200}
-              className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
-          </div>
-        ))}
-      </div>
-    );
-
-    // 学校・団体等
-    if (id === "orgs") return (
-      <div>
-        <p className="px-5 pt-4 pb-2 text-[11px] text-white/30 italic">部活・委員会・NPO等。活動記録と重複可。◎は特記したい3つまで。</p>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[780px]">
-            <thead>
-              <tr className="border-b border-white/8 bg-white/2">
-                <th className={thCls("w-14")}>開始年</th>
-                <th className={thCls("w-10")}>月</th>
-                <th className={thCls("w-14")}>終了年</th>
-                <th className={thCls("w-10")}>月</th>
-                <th className={thCls("w-12")}>学年</th>
-                <th className={thCls("w-10")}>年齢</th>
-                <th className={thCls()}>組織名（20字以内）</th>
-                <th className={thCls("w-20")}>役職（10字）</th>
-                <th className={thCls("w-12")}>資料番号</th>
-                <th className="text-[9px] text-white/30 font-semibold px-2 py-2 text-center w-8">◎</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.orgs.map((row: OrganizationEntry, i: number) => (
-                <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
-                  <td className="border-r border-white/8"><input value={row.startYear} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], startYear: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="2020" className={inputCls} maxLength={4} /></td>
-                  <td className="border-r border-white/8"><input value={row.startMonth} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], startMonth: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="4" className={inputCls} maxLength={2} /></td>
-                  <td className="border-r border-white/8"><input value={row.endYear} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], endYear: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="2025" className={inputCls} maxLength={4} /></td>
-                  <td className="border-r border-white/8"><input value={row.endMonth} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], endMonth: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="3" className={inputCls} maxLength={2} /></td>
-                  <td className="border-r border-white/8"><input value={row.grade} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], grade: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="高1" className={inputCls} maxLength={4} /></td>
-                  <td className="border-r border-white/8"><input value={row.age} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], age: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="16" className={inputCls} maxLength={3} /></td>
-                  <td className="border-r border-white/8"><input value={row.name} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], name: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="例）慶應高校ボランティア部" className={inputCls} maxLength={20} /></td>
-                  <td className="border-r border-white/8"><input value={row.role} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], role: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="部長" className={inputCls} maxLength={10} /></td>
-                  <td className="border-r border-white/8"><input value={row.docNumber} onChange={(e) => { const next = [...data.orgs]; next[i] = { ...next[i], docNumber: e.target.value }; mut((p) => ({ ...p, orgs: next })); }} placeholder="-" className={`${inputCls} text-center`} maxLength={2} /></td>
-                  <td className="text-center px-2">
-                    <button onClick={() => { const next = [...data.orgs]; next[i] = { ...next[i], featured: !next[i].featured }; mut((p) => ({ ...p, orgs: next })); }}
-                      className={`w-5 h-5 flex items-center justify-center mx-auto ${row.featured ? "text-amber-400" : "text-white/15"}`}>
-                      <Star className={`w-3.5 h-3.5 ${row.featured ? "fill-amber-400" : ""}`} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-
-    // 競技・コンクール
-    if (id === "competitions") return (
-      <div>
-        <p className="px-5 pt-4 pb-2 text-[11px] text-white/30 italic">活動記録と重複可。◎は特記したい3つまで。</p>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px]">
-            <thead>
-              <tr className="border-b border-white/8 bg-white/2">
-                <th className={thCls("w-14")}>西暦年</th>
-                <th className={thCls("w-10")}>月</th>
-                <th className={thCls("w-10")}>年齢</th>
-                <th className={thCls()}>競技・コンクール等名称（30字）</th>
-                <th className={thCls("w-28")}>主催機関（30字）</th>
-                <th className={thCls("w-24")}>成績・結果（20字）</th>
-                <th className={thCls("w-12")}>資料番号</th>
-                <th className="text-[9px] text-white/30 font-semibold px-2 py-2 text-center w-8">◎</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.competitions.map((row: CompetitionEntry, i: number) => (
-                <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
-                  <td className="border-r border-white/8"><input value={row.year} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], year: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="2024" className={inputCls} maxLength={4} /></td>
-                  <td className="border-r border-white/8"><input value={row.month} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], month: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="3" className={inputCls} maxLength={2} /></td>
-                  <td className="border-r border-white/8"><input value={row.age} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], age: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="17" className={inputCls} maxLength={3} /></td>
-                  <td className="border-r border-white/8"><input value={row.name} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], name: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="コンクール名" className={inputCls} maxLength={30} /></td>
-                  <td className="border-r border-white/8"><input value={row.organizer} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], organizer: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="主催機関" className={inputCls} maxLength={30} /></td>
-                  <td className="border-r border-white/8"><input value={row.result} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], result: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="大賞・優勝等" className={inputCls} maxLength={20} /></td>
-                  <td className="border-r border-white/8"><input value={row.docNumber} onChange={(e) => { const next = [...data.competitions]; next[i] = { ...next[i], docNumber: e.target.value }; mut((p) => ({ ...p, competitions: next })); }} placeholder="-" className={`${inputCls} text-center`} maxLength={2} /></td>
-                  <td className="text-center px-2">
-                    <button onClick={() => { const next = [...data.competitions]; next[i] = { ...next[i], featured: !next[i].featured }; mut((p) => ({ ...p, competitions: next })); }}
-                      className={`w-5 h-5 flex items-center justify-center mx-auto ${row.featured ? "text-amber-400" : "text-white/15"}`}>
-                      <Star className={`w-3.5 h-3.5 ${row.featured ? "fill-amber-400" : ""}`} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-
-    // 団体活動・役割
-    if (id === "groupRole") return (
-      <div className="px-5 py-5">
-        <div className="rounded-xl border border-white/8 overflow-hidden">
-          <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
-            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">団体における役割と実績（Group Activities and Competitions）</p>
-            <CharCount val={data.groupRole} max={100} warn={85} />
-          </div>
-          <textarea value={data.groupRole} onChange={(e) => mut((p) => ({ ...p, groupRole: e.target.value }))}
-            placeholder="これまでに入力した内容の中で団体活動・競技における役割と実績..." rows={3} maxLength={100}
-            className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
-        </div>
-      </div>
-    );
-
-    // スポーツ
-    if (id === "sports") return (
-      <div className="px-5 py-5">
-        <div className="rounded-xl border border-white/8 overflow-hidden">
-          <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
-            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">特に優れた運動能力・内容・記録（Competitive Sports Abilities）</p>
-            <CharCount val={data.sports} max={100} warn={85} />
-          </div>
-          <textarea value={data.sports} onChange={(e) => mut((p) => ({ ...p, sports: e.target.value }))}
-            placeholder="スポーツ競技における特に優れた運動能力とその内容・記録..." rows={3} maxLength={100}
-            className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
-        </div>
-      </div>
-    );
-
-    // 資格・検定
-    if (id === "qualifications") return (
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px]">
-          <thead>
-            <tr className="border-b border-white/8 bg-white/2">
-              <th className={thCls("w-14")}>西暦年</th>
-              <th className={thCls("w-10")}>月</th>
-              <th className={thCls("w-10")}>年齢</th>
-              <th className={thCls()}>資格等の名称（30字）</th>
-              <th className={thCls("w-24")}>資格級位（20字）</th>
-              <th className={thCls("w-28")}>認定機関名（30字）</th>
-              <th className={thCls("w-12")}>資料番号</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.qualifications.map((row: QualificationEntry, i: number) => (
-              <tr key={i} className="border-b border-white/5 last:border-b-0 hover:bg-white/2">
-                <td className="border-r border-white/8"><input value={row.year} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], year: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="2023" className={inputCls} maxLength={4} /></td>
-                <td className="border-r border-white/8"><input value={row.month} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], month: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="6" className={inputCls} maxLength={2} /></td>
-                <td className="border-r border-white/8"><input value={row.age} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], age: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="17" className={inputCls} maxLength={3} /></td>
-                <td className="border-r border-white/8"><input value={row.name} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], name: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="実用英語技能検定" className={inputCls} maxLength={30} /></td>
-                <td className="border-r border-white/8"><input value={row.level} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], level: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="準1級" className={inputCls} maxLength={20} /></td>
-                <td className="border-r border-white/8"><input value={row.organization} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], organization: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="公益財団法人日本英語検定協会" className={inputCls} maxLength={30} /></td>
-                <td><input value={row.docNumber} onChange={(e) => { const next = [...data.qualifications]; next[i] = { ...next[i], docNumber: e.target.value }; mut((p) => ({ ...p, qualifications: next })); }} placeholder="-" className={`${inputCls} text-center`} maxLength={2} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-
-    // その他
-    if (id === "other") return (
-      <div className="px-5 py-5">
-        <div className="rounded-xl border border-white/8 overflow-hidden">
-          <div className="px-4 py-2 bg-white/4 border-b border-white/8 flex justify-between">
-            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">その他（Additional Information）</p>
-            <CharCount val={data.other} max={500} warn={450} />
-          </div>
-          <textarea value={data.other} onChange={(e) => mut((p) => ({ ...p, other: e.target.value }))}
-            placeholder="知っておいてほしいことがあれば500字以内で..." rows={5} maxLength={500}
-            className="w-full px-4 py-3 bg-transparent text-white/80 placeholder-white/15 text-sm resize-none focus:outline-none leading-relaxed" />
-        </div>
-      </div>
-    );
-
-    return null;
-  }
-
   return (
     <div className="space-y-3">
       {/* 保存・共有ボタン */}
@@ -530,7 +532,7 @@ export default function ActivityWorksheet() {
                 transition={{ duration: 0.25 }}
                 className="overflow-hidden border-t border-white/5 bg-white/1"
               >
-                <SectionContent id={sec.id} />
+                <SectionContent id={sec.id} data={data} mut={mut} />
               </motion.div>
             )}
           </AnimatePresence>
