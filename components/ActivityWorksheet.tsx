@@ -429,8 +429,8 @@ export default function ActivityWorksheet() {
             overseas:          [...(p.overseas          ?? []), ...def.overseas        ].slice(0, 4),
             activities:        [...(p.activities        ?? []), ...def.activities      ].slice(0, 10),
             optionalMaterials: [...(p.optionalMaterials ?? []), ...def.optionalMaterials].slice(0, 10),
-            orgs:              [...(p.orgs              ?? []), ...def.orgs            ].slice(0, 5),
-            competitions:      [...(p.competitions      ?? []), ...def.competitions    ].slice(0, 5),
+            orgs:              [...(p.orgs              ?? []), ...def.orgs            ].slice(0, 10),
+            competitions:      [...(p.competitions      ?? []), ...def.competitions    ].slice(0, 10),
             qualifications:    [...(p.qualifications    ?? []), ...def.qualifications  ].slice(0, 5),
           });
         }

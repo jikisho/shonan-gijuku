@@ -105,8 +105,8 @@ export interface ActivityData {
   selfEval: string;              // 200字
   activities: ActivityEntry[];   // 10件
   optionalMaterials: OptionalMaterialEntry[]; // 10件
-  orgs: OrganizationEntry[];     // 5件
-  competitions: CompetitionEntry[]; // 5件
+  orgs: OrganizationEntry[];     // 10件
+  competitions: CompetitionEntry[]; // 10件
   groupRole: string;             // 100字
   sports: string;                // 100字
   qualifications: QualificationEntry[]; // 5件
@@ -130,8 +130,8 @@ export const defaultActivityData = (): ActivityData => ({
   selfEval: "",
   activities: Array.from({ length: 10 }, emptyActivity),
   optionalMaterials: Array.from({ length: 10 }, (_, i) => emptyOptional(i + 1)),
-  orgs: Array.from({ length: 5 }, emptyOrg),
-  competitions: Array.from({ length: 5 }, emptyComp),
+  orgs: Array.from({ length: 10 }, emptyOrg),
+  competitions: Array.from({ length: 10 }, emptyComp),
   groupRole: "",
   sports: "",
   qualifications: Array.from({ length: 5 }, emptyQual),
