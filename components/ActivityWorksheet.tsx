@@ -412,7 +412,18 @@ export default function ActivityWorksheet() {
             .eq("user_id", user.id)
             .single();
           if (row?.data && Object.keys(row.data).length > 0) {
-            setData(row.data as ActivityData);
+            const p = row.data as ActivityData;
+            const def = defaultActivityData();
+            setData({
+              ...def, ...p,
+              academics:         [...(p.academics        ?? []), ...def.academics       ].slice(0, 6),
+              overseas:          [...(p.overseas          ?? []), ...def.overseas        ].slice(0, 4),
+              activities:        [...(p.activities        ?? []), ...def.activities      ].slice(0, 10),
+              optionalMaterials: [...(p.optionalMaterials ?? []), ...def.optionalMaterials].slice(0, 10),
+              orgs:              [...(p.orgs              ?? []), ...def.orgs            ].slice(0, 10),
+              competitions:      [...(p.competitions      ?? []), ...def.competitions    ].slice(0, 10),
+              qualifications:    [...(p.qualifications    ?? []), ...def.qualifications  ].slice(0, 5),
+            });
             return;
           }
         }
