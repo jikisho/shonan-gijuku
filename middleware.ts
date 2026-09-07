@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = pathname === "/" || pathname === "/login";
+  const isPublic = pathname === "/" || pathname === "/login" || pathname.startsWith("/shift") || pathname.startsWith("/api/shift");
   const isAdmin = pathname.startsWith("/admin");
 
   // Supabase 環境変数が未設定の場合はそのまま通す
