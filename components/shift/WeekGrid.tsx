@@ -4,12 +4,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { COACHES } from './CoachChips';
 
 export const SLOTS = [
+  { key: 's08', label: '8:00' },
+  { key: 's09', label: '9:00' },
   { key: 's10', label: '10:00' },
+  { key: 's11', label: '11:00' },
   { key: 's12', label: '12:00' },
+  { key: 's13', label: '13:00' },
   { key: 's14', label: '14:00' },
+  { key: 's15', label: '15:00' },
   { key: 's16', label: '16:00' },
+  { key: 's17', label: '17:00' },
   { key: 's18', label: '18:00' },
+  { key: 's19', label: '19:00' },
   { key: 's20', label: '20:00' },
+  { key: 's21', label: '21:00' },
+  { key: 's22', label: '22:00' },
 ];
 
 export type AvailabilityMap = {
@@ -74,7 +83,7 @@ export default function WeekGrid({ weekStart, availability, selectedCoach, onTog
                           ? `2px solid ${coachMap[selectedCoach!]?.color ?? '#4d94ff'}`
                           : '1px solid rgba(255,255,255,0.08)',
                       }}
-                      className="w-full h-12 rounded-lg relative flex flex-wrap items-center justify-center gap-0.5 transition-all hover:brightness-110 disabled:cursor-default"
+                      className="w-full h-8 rounded-md relative flex flex-wrap items-center justify-center gap-0.5 transition-all hover:brightness-110 disabled:cursor-default"
                     >
                       {/* Avatar dots */}
                       <AnimatePresence>
