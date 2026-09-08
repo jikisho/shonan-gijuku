@@ -185,13 +185,12 @@ export default function ShiftPage() {
         <StatsBar availability={combinedAvailability} />
 
         {/* AI Input */}
-        {selectedCoach && (
-          <AIInput
-            weekStart={week1Str}
-            onSlots={handleAISlots}
-            disabled={!aiEnabled}
-          />
-        )}
+        <AIInput
+          weekStart={week1Str}
+          onSlots={handleAISlots}
+          disabled={!aiEnabled || !selectedCoach}
+          noCoach={!selectedCoach}
+        />
         {aiSummary && (
           <p className="px-4 pb-4 text-xs text-blue-400">AI解析: {aiSummary}</p>
         )}

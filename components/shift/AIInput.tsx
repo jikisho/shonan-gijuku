@@ -6,9 +6,10 @@ interface Props {
   weekStart: string; // 'YYYY-MM-DD'
   onSlots: (slots: { day_index: number; slot_key: string }[], summary: string) => void;
   disabled?: boolean;
+  noCoach?: boolean;
 }
 
-export default function AIInput({ weekStart, onSlots, disabled }: Props) {
+export default function AIInput({ weekStart, onSlots, disabled, noCoach }: Props) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +58,12 @@ export default function AIInput({ weekStart, onSlots, disabled }: Props) {
           {loading ? '解析中...' : '送信'}
         </button>
       </div>
-      {disabled && (
+      {noCoach && (
+        <p className="text-xs text-yellow-500/70 mt-1">
+          講師を選択してから入力してください
+        </p>
+      )}
+      {!noCoach && disabled && (
         <p className="text-xs text-yellow-500/70 mt-1">
           ANTHROPIC_API_KEY が未設定のため AI 解析は無効です
         </p>
