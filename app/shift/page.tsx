@@ -5,6 +5,7 @@ import CoachChips from '@/components/shift/CoachChips';
 import WeekGrid, { AvailabilityMap } from '@/components/shift/WeekGrid';
 import AIInput from '@/components/shift/AIInput';
 import StatsBar from '@/components/shift/StatsBar';
+import ConfirmedForm, { ConfirmedSession } from '@/components/shift/ConfirmedForm';
 
 function getMondayOfCurrentWeek(): Date {
   const now = new Date();
@@ -51,10 +52,12 @@ export default function ShiftPage() {
   const week2Start = addDays(week1Start, 7);
   const week1Str = toISO(week1Start);
   const week2Str = toISO(week2Start);
+  const week2EndStr = toISO(addDays(week2Start, 6));
 
   const [selectedCoach, setSelectedCoach] = useState<string | null>(null);
   const [availability1, setAvailability1] = useState<AvailabilityMap>({});
   const [availability2, setAvailability2] = useState<AvailabilityMap>({});
+  const [confirmedSessions, setConfirmedSessions] = useState<ConfirmedSession[]>([]);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [aiSummary, setAiSummary] = useState('');
@@ -69,19 +72,21 @@ export default function ShiftPage() {
   const loadAvailability = useCallback(async () => {
     setLoading(true);
     try {
-      const [r1, r2] = await Promise.all([
+      const [r1, r2, rc] = await Promise.all([
         fetch(`/api/shift/availability?week=${week1Str}`).then((r) => r.json()),
         fetch(`/api/shift/availability?week=${week2Str}`).then((r) => r.json()),
+        fetch(`/api/shift/confirmed?from=${week1Str}&to=${week2EndStr}`).then((r) => r.json()),
       ]);
       setAvailability1(r1.records ? buildAvailabilityMap(r1.records) : {});
       setAvailability2(r2.records ? buildAvailabilityMap(r2.records) : {});
+      setConfirmedSessions(rc.records ?? []);
     } catch {
       setAvailability1({});
       setAvailability2({});
     } finally {
       setLoading(false);
     }
-  }, [week1Str, week2Str]);
+  }, [week1Str, week2Str, week2EndStr]);
 
   useEffect(() => { loadAvailability(); }, [loadAvailability]);
 
@@ -133,6 +138,10 @@ export default function ShiftPage() {
   const days2 = Array.from({ length: 7 }, (_, i) => addDays(week2Start, i));
   const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
 
+  // Split confirmed sessions by week
+  const confirmed1 = confirmedSessions.filter((s) => s.session_date >= week1Str && s.session_date <= toISO(addDays(week1Start, 6)));
+  const confirmed2 = confirmedSessions.filter((s) => s.session_date >= week2Str && s.session_date <= week2EndStr);
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#080e1c', color: '#e2e8f0' }}>
       <div className="max-w-5xl mx-auto">
@@ -153,6 +162,13 @@ export default function ShiftPage() {
           </p>
         )}
 
+        {/* Confirmed session form */}
+        <ConfirmedForm
+          sessions={confirmedSessions}
+          onAdd={(s) => setConfirmedSessions((prev) => [...prev, s])}
+          onDelete={(id) => setConfirmedSessions((prev) => prev.filter((s) => s.id !== id))}
+        />
+
         {loading ? (
           <div className="text-center text-gray-500 py-10 text-sm">読み込み中...</div>
         ) : (
@@ -166,6 +182,7 @@ export default function ShiftPage() {
               availability={availability1}
               selectedCoach={selectedCoach}
               onToggle={(d, s) => handleToggle(week1Str, setAvailability1, d, s)}
+              confirmedSessions={confirmed1}
             />
 
             {/* Week 2 */}
@@ -177,6 +194,7 @@ export default function ShiftPage() {
               availability={availability2}
               selectedCoach={selectedCoach}
               onToggle={(d, s) => handleToggle(week2Str, setAvailability2, d, s)}
+              confirmedSessions={confirmed2}
             />
           </>
         )}

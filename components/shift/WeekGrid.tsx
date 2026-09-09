@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { COACHES } from './CoachChips';
+import { ConfirmedSession } from './ConfirmedForm';
 
 export const SLOTS = [
   { key: 's08', label: '8:00' },
@@ -31,6 +32,7 @@ interface Props {
   availability: AvailabilityMap;
   selectedCoach: string | null;
   onToggle: (dayIndex: number, slotKey: string) => void;
+  confirmedSessions?: ConfirmedSession[];
 }
 
 function getDayLabels(weekStart: Date): string[] {
@@ -42,9 +44,23 @@ function getDayLabels(weekStart: Date): string[] {
   });
 }
 
-export default function WeekGrid({ weekStart, availability, selectedCoach, onToggle }: Props) {
+export default function WeekGrid({ weekStart, availability, selectedCoach, onToggle, confirmedSessions = [] }: Props) {
   const dayLabels = getDayLabels(weekStart);
   const coachMap = Object.fromEntries(COACHES.map((c) => [c.id, c]));
+
+  // Build confirmed map: date string -> slot_key -> sessions[]
+  const confirmedMap: Record<string, ConfirmedSession[]> = {};
+  for (const s of confirmedSessions) {
+    const mapKey = `${s.session_date}__${s.slot_key}`;
+    if (!confirmedMap[mapKey]) confirmedMap[mapKey] = [];
+    confirmedMap[mapKey].push(s);
+  }
+
+  function getDateStr(dayIndex: number): string {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + dayIndex);
+    return d.toISOString().slice(0, 10);
+  }
 
   return (
     <div className="overflow-x-auto px-2 pb-4">
@@ -71,6 +87,9 @@ export default function WeekGrid({ weekStart, availability, selectedCoach, onTog
                 const count = coaches.size;
                 const isSelected = selectedCoach ? coaches.has(selectedCoach) : false;
                 const heat = Math.min(count / 4, 1);
+                const dateStr = getDateStr(dayIndex);
+                const confirmed = confirmedMap[`${dateStr}__${slot.key}`] ?? [];
+                const isConfirmed = confirmed.length > 0;
 
                 return (
                   <td key={dayIndex} className="p-0.5">
@@ -78,36 +97,56 @@ export default function WeekGrid({ weekStart, availability, selectedCoach, onTog
                       onClick={() => selectedCoach && onToggle(dayIndex, slot.key)}
                       disabled={!selectedCoach}
                       style={{
-                        backgroundColor: `rgba(77,148,255,${heat * 0.3})`,
-                        border: isSelected
+                        backgroundColor: isConfirmed
+                          ? 'rgba(251,191,36,0.15)'
+                          : `rgba(77,148,255,${heat * 0.3})`,
+                        border: isConfirmed
+                          ? '2px solid #fbbf24'
+                          : isSelected
                           ? `2px solid ${coachMap[selectedCoach!]?.color ?? '#4d94ff'}`
                           : '1px solid rgba(255,255,255,0.08)',
+                        animation: isConfirmed ? 'goldPulse 1.8s infinite' : undefined,
                       }}
-                      className="w-full h-8 rounded-md relative flex flex-wrap items-center justify-center gap-0.5 transition-all hover:brightness-110 disabled:cursor-default"
+                      className="w-full h-8 rounded-md relative flex flex-wrap items-center justify-center gap-0.5 transition-all hover:brightness-110 disabled:cursor-default overflow-hidden"
                     >
-                      {/* Avatar dots */}
-                      <AnimatePresence>
-                        {Array.from(coaches).map((cid) => {
-                          const coach = coachMap[cid];
-                          if (!coach) return null;
-                          return (
-                            <motion.span
-                              key={cid}
-                              initial={{ scale: 0, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              exit={{ scale: 0, opacity: 0 }}
-                              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                              style={{ backgroundColor: coach.color }}
-                              className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-black"
-                              title={coach.name}
-                            >
-                              {coach.name[0]}
-                            </motion.span>
-                          );
-                        })}
-                      </AnimatePresence>
+                      {/* Confirmed student badges */}
+                      {isConfirmed && confirmed.map((s) => (
+                        <span
+                          key={s.id}
+                          className="text-[9px] font-bold px-0.5 rounded"
+                          style={{ color: '#fbbf24' }}
+                          title={`${coachMap[s.coach_id]?.name} × ${s.student_name}`}
+                        >
+                          {s.student_name.slice(0, 2)}
+                        </span>
+                      ))}
+
+                      {/* Avatar dots (空き表示、確定済みでなければ表示) */}
+                      {!isConfirmed && (
+                        <AnimatePresence>
+                          {Array.from(coaches).map((cid) => {
+                            const coach = coachMap[cid];
+                            if (!coach) return null;
+                            return (
+                              <motion.span
+                                key={cid}
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0, opacity: 0 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                                style={{ backgroundColor: coach.color }}
+                                className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-black"
+                                title={coach.name}
+                              >
+                                {coach.name[0]}
+                              </motion.span>
+                            );
+                          })}
+                        </AnimatePresence>
+                      )}
+
                       {/* Count badge */}
-                      {count >= 2 && (
+                      {!isConfirmed && count >= 2 && (
                         <span
                           className="absolute top-0.5 right-0.5 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center"
                           style={{ backgroundColor: '#4d94ff', color: '#080e1c' }}
