@@ -6,7 +6,7 @@ import { SLOTS } from './WeekGrid';
 
 export interface ConfirmedSession {
   id: string;
-  coach_id: string;
+  coach_id: string; // カンマ区切りで2人分: "yamada,nakamura"
   student_name: string;
   session_date: string;
   slot_key: string;
@@ -20,25 +20,35 @@ interface Props {
 
 export default function ConfirmedForm({ onAdd, sessions, onDelete }: Props) {
   const [open, setOpen] = useState(false);
-  const [coachId, setCoachId] = useState(COACHES[0].id);
+  const [selectedCoaches, setSelectedCoaches] = useState<string[]>([]);
   const [studentName, setStudentName] = useState('');
   const [date, setDate] = useState('');
   const [slotKey, setSlotKey] = useState(SLOTS[0].key);
   const [loading, setLoading] = useState(false);
 
+  function toggleCoach(id: string) {
+    setSelectedCoaches((prev) => {
+      if (prev.includes(id)) return prev.filter((c) => c !== id);
+      if (prev.length >= 2) return prev; // 最大2人
+      return [...prev, id];
+    });
+  }
+
   async function handleSubmit() {
-    if (!studentName.trim() || !date) return;
+    if (!studentName.trim() || !date || selectedCoaches.length === 0) return;
     setLoading(true);
+    const coachIdStr = selectedCoaches.join(',');
     try {
       const res = await fetch('/api/shift/confirmed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coach_id: coachId, student_name: studentName.trim(), session_date: date, slot_key: slotKey }),
+        body: JSON.stringify({ coach_id: coachIdStr, student_name: studentName.trim(), session_date: date, slot_key: slotKey }),
       });
       const data = await res.json();
       if (data.ok && data.record) {
         onAdd(data.record);
         setStudentName('');
+        setSelectedCoaches([]);
       }
     } finally {
       setLoading(false);
@@ -56,6 +66,14 @@ export default function ConfirmedForm({ onAdd, sessions, onDelete }: Props) {
 
   const coachMap = Object.fromEntries(COACHES.map((c) => [c.id, c]));
   const slotMap = Object.fromEntries(SLOTS.map((s) => [s.key, s.label]));
+
+  function coachNames(coachIdStr: string) {
+    return coachIdStr.split(',').map((id) => coachMap[id]?.name ?? id).join(' & ');
+  }
+  function coachColor(coachIdStr: string) {
+    const ids = coachIdStr.split(',');
+    return coachMap[ids[0]]?.color ?? '#fff';
+  }
 
   return (
     <div className="px-4 pb-4">
@@ -83,28 +101,42 @@ export default function ConfirmedForm({ onAdd, sessions, onDelete }: Props) {
       `}</style>
 
       {open && (
-        <div className="rounded-xl p-3 mb-3 space-y-2" style={{ backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}>
-          <div className="flex flex-wrap gap-2">
-            {/* Coach */}
-            <select
-              value={coachId}
-              onChange={(e) => setCoachId(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm text-white"
-            >
-              {COACHES.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+        <div className="rounded-xl p-3 mb-3 space-y-3" style={{ backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}>
 
-            {/* Date */}
+          {/* Coach chips (最大2人) */}
+          <div>
+            <p className="text-xs text-gray-400 mb-1">担当講師（最大2人）</p>
+            <div className="flex flex-wrap gap-1.5">
+              {COACHES.map((c) => {
+                const active = selectedCoaches.includes(c.id);
+                const disabled = !active && selectedCoaches.length >= 2;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => !disabled && toggleCoach(c.id)}
+                    style={{
+                      borderColor: c.color,
+                      backgroundColor: active ? c.color : 'transparent',
+                      color: active ? '#080e1c' : c.color,
+                      opacity: disabled ? 0.3 : 1,
+                    }}
+                    className="px-2.5 py-0.5 rounded-full border text-xs font-bold transition-all"
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Date / Slot / Student */}
+          <div className="flex flex-wrap gap-2">
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm text-white"
             />
-
-            {/* Slot */}
             <select
               value={slotKey}
               onChange={(e) => setSlotKey(e.target.value)}
@@ -114,8 +146,6 @@ export default function ConfirmedForm({ onAdd, sessions, onDelete }: Props) {
                 <option key={s.key} value={s.key}>{s.label}</option>
               ))}
             </select>
-
-            {/* Student */}
             <input
               type="text"
               value={studentName}
@@ -123,10 +153,9 @@ export default function ConfirmedForm({ onAdd, sessions, onDelete }: Props) {
               placeholder="生徒名"
               className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm text-white placeholder-gray-500 w-28"
             />
-
             <button
               onClick={handleSubmit}
-              disabled={loading || !studentName.trim() || !date}
+              disabled={loading || !studentName.trim() || !date || selectedCoaches.length === 0}
               className="px-3 py-1 rounded-lg text-sm font-bold disabled:opacity-40"
               style={{ backgroundColor: '#fbbf24', color: '#080e1c' }}
             >
@@ -136,20 +165,17 @@ export default function ConfirmedForm({ onAdd, sessions, onDelete }: Props) {
 
           {/* List */}
           {sessions.length > 0 && (
-            <div className="space-y-1 mt-2">
-              {sessions.map((s) => {
-                const coach = coachMap[s.coach_id];
-                return (
-                  <div key={s.id} className="flex items-center justify-between text-xs text-gray-300">
-                    <span>
-                      <span style={{ color: coach?.color ?? '#fff' }}>{coach?.name ?? s.coach_id}</span>
-                      {' × '}{s.student_name}
-                      {'　'}{s.session_date}{'　'}{slotMap[s.slot_key] ?? s.slot_key}
-                    </span>
-                    <button onClick={() => handleDelete(s.id)} className="text-gray-500 hover:text-red-400 ml-3">✕</button>
-                  </div>
-                );
-              })}
+            <div className="space-y-1 pt-1 border-t border-white/10">
+              {sessions.map((s) => (
+                <div key={s.id} className="flex items-center justify-between text-xs text-gray-300">
+                  <span>
+                    <span style={{ color: coachColor(s.coach_id) }}>{coachNames(s.coach_id)}</span>
+                    {' × '}{s.student_name}
+                    {'　'}{s.session_date}{'　'}{slotMap[s.slot_key] ?? s.slot_key}
+                  </span>
+                  <button onClick={() => handleDelete(s.id)} className="text-gray-500 hover:text-red-400 ml-3">✕</button>
+                </div>
+              ))}
             </div>
           )}
         </div>
