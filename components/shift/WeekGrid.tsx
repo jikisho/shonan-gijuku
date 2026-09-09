@@ -110,16 +110,25 @@ export default function WeekGrid({ weekStart, availability, selectedCoach, onTog
                       className="w-full h-8 rounded-md relative flex flex-wrap items-center justify-center gap-0.5 transition-all hover:brightness-110 disabled:cursor-default overflow-hidden"
                     >
                       {/* Confirmed student badges */}
-                      {isConfirmed && confirmed.map((s) => (
-                        <span
-                          key={s.id}
-                          className="text-[9px] font-bold px-0.5 rounded"
-                          style={{ color: '#fbbf24' }}
-                          title={`${coachMap[s.coach_id]?.name} × ${s.student_name}`}
-                        >
-                          {s.student_name.slice(0, 2)}
-                        </span>
-                      ))}
+                      {isConfirmed && confirmed.map((s) => {
+                        const coachNames = s.coach_id.split(',')
+                          .map((id) => coachMap[id]?.name ?? id)
+                          .join('&');
+                        return (
+                          <div
+                            key={s.id}
+                            className="flex flex-col items-center leading-tight"
+                            title={`${coachNames} × ${s.student_name}`}
+                          >
+                            <span className="text-[8px] font-bold" style={{ color: '#fbbf24' }}>
+                              {s.student_name.slice(0, 3)}
+                            </span>
+                            <span className="text-[7px]" style={{ color: 'rgba(251,191,36,0.6)' }}>
+                              ({coachNames})
+                            </span>
+                          </div>
+                        );
+                      })}
 
                       {/* Avatar dots (空き表示、確定済みでなければ表示) */}
                       {!isConfirmed && (
