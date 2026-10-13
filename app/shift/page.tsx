@@ -93,37 +93,36 @@ export default function ShiftPage() {
 
   useEffect(() => { loadAvailability(); }, [loadAvailability]);
 
-  async function handleToggle(weekStr: string, setAvail: React.Dispatch<React.SetStateAction<AvailabilityMap>>, dayIndex: number, slotKey: string) {
+  async function handleToggle(weekStr: string, current: AvailabilityMap, setAvail: React.Dispatch<React.SetStateAction<AvailabilityMap>>, dayIndex: number, slotKey: string) {
     if (!selectedCoach) return;
+    const coachId = selectedCoach;
     const cellKey = `${dayIndex}-${slotKey}`;
-    let hasIt = false;
-    setAvail((prev) => {
-      const current = prev[cellKey] ?? new Set<string>();
-      hasIt = current.has(selectedCoach);
-      const next = { ...prev };
-      const s = new Set(next[cellKey] ?? []);
-      if (hasIt) s.delete(selectedCoach);
-      else s.add(selectedCoach);
-      next[cellKey] = s;
-      return next;
-    });
+    const hasIt = current[cellKey]?.has(coachId) ?? false;
 
-    try {
-      const body = { coach_id: selectedCoach, week_start: weekStr, day_index: dayIndex, slot_key: slotKey };
-      if (hasIt) {
-        await fetch('/api/shift/availability', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      } else {
-        await fetch('/api/shift/availability', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      }
-    } catch {
+    const apply = (add: boolean) =>
       setAvail((prev) => {
         const next = { ...prev };
         const s = new Set(next[cellKey] ?? []);
-        if (hasIt) s.add(selectedCoach!);
-        else s.delete(selectedCoach!);
+        if (add) s.add(coachId);
+        else s.delete(coachId);
         next[cellKey] = s;
         return next;
       });
+
+    apply(!hasIt);
+
+    try {
+      const body = { coach_id: coachId, week_start: weekStr, day_index: dayIndex, slot_key: slotKey };
+      const res = await fetch('/api/shift/availability', {
+        method: hasIt ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error('save_failed');
+    } catch {
+      apply(hasIt);
+      alert('保存に失敗しました。もう一度お試しください。');
     }
   }
 
@@ -131,7 +130,7 @@ export default function ShiftPage() {
     if (!selectedCoach) return;
     setAiSummary(summary);
     slots.forEach(({ day_index, slot_key }) => {
-      handleToggle(week1Str, setAvailability1, day_index, slot_key);
+      handleToggle(week1Str, availability1, setAvailability1, day_index, slot_key);
     });
   }
 
@@ -184,7 +183,7 @@ export default function ShiftPage() {
               weekStart={week1Start}
               availability={availability1}
               selectedCoach={selectedCoach}
-              onToggle={(d, s) => handleToggle(week1Str, setAvailability1, d, s)}
+              onToggle={(d, s) => handleToggle(week1Str, availability1, setAvailability1, d, s)}
               confirmedSessions={confirmed1}
             />
 
@@ -196,7 +195,7 @@ export default function ShiftPage() {
               weekStart={week2Start}
               availability={availability2}
               selectedCoach={selectedCoach}
-              onToggle={(d, s) => handleToggle(week2Str, setAvailability2, d, s)}
+              onToggle={(d, s) => handleToggle(week2Str, availability2, setAvailability2, d, s)}
               confirmedSessions={confirmed2}
             />
           </>
