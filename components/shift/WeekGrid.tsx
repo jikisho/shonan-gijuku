@@ -93,6 +93,7 @@ export default function WeekGrid({ weekStart, availability, selectedCoach, onTog
                 const dateStr = getDateStr(dayIndex);
                 const confirmed = confirmedMap[`${dateStr}__${slot.key}`] ?? [];
                 const isConfirmed = confirmed.length > 0;
+                const assignedIds = new Set(confirmed.flatMap((s) => s.coach_id.split(',')));
 
                 return (
                   <td key={dayIndex} className="p-0.5">
@@ -133,29 +134,32 @@ export default function WeekGrid({ weekStart, availability, selectedCoach, onTog
                         );
                       })}
 
-                      {/* Avatar dots (空き表示、確定済みでなければ表示) */}
-                      {!isConfirmed && (
-                        <AnimatePresence>
-                          {Array.from(coaches).map((cid) => {
-                            const coach = coachMap[cid];
-                            if (!coach) return null;
-                            return (
-                              <motion.span
-                                key={cid}
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0, opacity: 0 }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                                style={{ backgroundColor: coach.color }}
-                                className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-black"
-                                title={coach.name}
-                              >
-                                {coach.name[0]}
-                              </motion.span>
-                            );
-                          })}
-                        </AnimatePresence>
-                      )}
+                      {/* Avatar dots（確定済みの枠では、担当は金リング・それ以外の候補は薄く表示） */}
+                      <AnimatePresence>
+                        {Array.from(coaches).map((cid) => {
+                          const coach = coachMap[cid];
+                          if (!coach) return null;
+                          const isAssigned = assignedIds.has(cid);
+                          const size = isConfirmed ? 'w-3 h-3 text-[7px]' : 'w-4 h-4 text-[9px]';
+                          return (
+                            <motion.span
+                              key={cid}
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: isConfirmed && !isAssigned ? 0.45 : 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                              style={{
+                                backgroundColor: coach.color,
+                                boxShadow: isConfirmed && isAssigned ? '0 0 0 1.5px #fbbf24' : undefined,
+                              }}
+                              className={`${size} rounded-full flex items-center justify-center font-bold text-black shrink-0`}
+                              title={isConfirmed ? `${coach.name}${isAssigned ? '（担当）' : '（候補）'}` : coach.name}
+                            >
+                              {coach.name[0]}
+                            </motion.span>
+                          );
+                        })}
+                      </AnimatePresence>
 
                       {/* Count badge */}
                       {!isConfirmed && count >= 2 && (

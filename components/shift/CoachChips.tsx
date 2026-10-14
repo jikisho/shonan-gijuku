@@ -13,6 +13,8 @@ export const COACHES = [
   { id: 'takeda',   name: '竹田', color: '#fbbf24' },
   { id: 'saito',    name: '齋藤', color: '#a78bfa' },
   { id: 'kunimoto', name: '國本', color: '#fb7185' },
+  { id: 'yamane',   name: '山根', color: '#38bdf8' },
+  { id: 'kusunoki', name: '楠',   color: '#a3e635' },
 ];
 
 interface Props {
