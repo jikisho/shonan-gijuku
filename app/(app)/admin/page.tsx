@@ -108,9 +108,17 @@ export default async function AdminPage() {
     }
   }
 
-  // 生徒一覧（講師自身を除く）
+  const { data: teacherRows } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("is_teacher", true);
+  const teacherIds = new Set((teacherRows ?? []).map((r) => r.id));
+
+  // 生徒一覧（講師と、停止中のアカウントを除く）
+  const now = new Date();
   const students: StudentProgress[] = (usersData?.users ?? [])
-    .filter((u) => u.id !== user.id)
+    .filter((u) => !teacherIds.has(u.id))
+    .filter((u) => !u.banned_until || new Date(u.banned_until) <= now)
     .map((u) => ({
       userId: u.id,
       email: u.email ?? "(メールなし)",
